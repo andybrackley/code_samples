@@ -10,7 +10,7 @@ sbeppc_compile_schema(
     SCHEMA_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/proto/deribit_multicast.xml"
 )
 
-add_executable(test_graph ./src/main.cpp)
+add_executable(test_graph ./src/main.cpp ./src/sbeEncode.h ./src/sbeEncode.cpp ./src/sbeppEncode.h ./src/sbeppEncode.cpp)
 
 target_link_libraries(test_graph sbepp::sbepp deribit_mutilcast)
 
