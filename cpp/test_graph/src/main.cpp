@@ -29,7 +29,7 @@ void runTestSbepp() {
 }
 */
 
-#include "generated/com_deribit_multicast/Book.h"
+#include "generated/sbe/com_deribit_multicast/Book.h"
 
 using namespace com::deribit::multicast;
 
