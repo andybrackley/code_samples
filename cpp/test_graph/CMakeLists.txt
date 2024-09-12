@@ -10,8 +10,10 @@ sbeppc_compile_schema(
     SCHEMA_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/proto/deribit_multicast.xml"
 )
 
-add_executable(test_graph ./src/main.cpp ./src/sbeEncode.h ./src/sbeEncode.cpp ./src/sbeppEncode.h ./src/sbeppEncode.cpp)
+file (GLOB_RECURSE mainSource CONFIGURE_DEPENDS "./src/*.cpp")
+file (GLOB_RECURSE fbeSources CONFIGURE_DEPENDS "./src/generated/fbeLib/*.cpp")
 
-target_link_libraries(test_graph sbepp::sbepp deribit_mutilcast)
+add_executable(test_graph ${mainSource} ${fbeSources})
 
-target_link_libraries(test_graph sbepp::sbepp)
+#NOTE: I think rpcrt.lib is a windows only lib so I may need to conditionally compile this.
+target_link_libraries(test_graph sbepp::sbepp deribit_mutilcast rpcrt4.lib)

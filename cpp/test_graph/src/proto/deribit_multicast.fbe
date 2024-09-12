@@ -1,0 +1,9 @@
+package deribit_multicast
+
+struct Book 
+{
+    [key]int32 id;
+
+    uint64 changedId;
+    uint32 instrumentId;
+}
