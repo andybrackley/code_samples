@@ -1,0 +1,6 @@
+@0xdbb9ad1f14bf0b36;
+
+struct Book {
+    changedId @0 :UInt64;
+    instrumentId @1 : UInt32;
+}

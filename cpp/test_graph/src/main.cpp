@@ -1,6 +1,7 @@
 #include <iostream>
 #include <array>
 
+#include "capnprotoEncode.h"
 #include "sbeEncode.h"
 #include "sbeppEncode.h"
 #include "fbeEncode.h"
@@ -39,10 +40,11 @@ void run(const std::string& name, EncoderT<BufferT> encoder, DecoderT<BufferT> d
 
 
 int main(int, char**){
-    run("SbeEncoding", SbeEncoding::encodeBook, &SbeEncoding::decodeBook);
-    run("SbeppEncoding", SbeppEncoding::encodeBook, &SbeppEncoding::decodeBook);
-    run("FbeEncoding", FbeEncoding::encodeBook, &FbeEncoding::decodeBook);
+    run("SbeEncoding", SbeEncoding::encodeBook, SbeEncoding::decodeBook);
+    run("SbeppEncoding", SbeppEncoding::encodeBook, SbeppEncoding::decodeBook);
+    run("FbeEncoding", FbeEncoding::encodeBook, FbeEncoding::decodeBook);
+    run("CapNProtoEncoding", CapnProtoEncoding::encodeBook, CapnProtoEncoding::decodeBook);
 
-    run("SbeEncoding::SbeppDecoding", SbeEncoding::encodeBook, &SbeppEncoding::decodeBook);
-    run("SbeppEncoding::SbeDecoding", SbeppEncoding::encodeBook, &SbeEncoding::decodeBook);
+    run("SbeEncoding::SbeppDecoding", SbeEncoding::encodeBook, SbeppEncoding::decodeBook);
+    run("SbeppEncoding::SbeDecoding", SbeppEncoding::encodeBook, SbeEncoding::decodeBook);
 }
