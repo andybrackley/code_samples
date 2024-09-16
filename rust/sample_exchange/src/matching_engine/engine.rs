@@ -37,7 +37,7 @@ impl MatchingEngine {
         }
     }
 
-    pub fn add_new_market(&mut self, trading_pair: TradingPair) {
+    pub fn add_new_market(&mut self, trading_pair: &TradingPair) {
         match self.orderbooks.get_key_value(&trading_pair) {
             Some(_) => {}
             None => {

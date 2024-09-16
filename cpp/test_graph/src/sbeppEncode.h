@@ -1,9 +1,9 @@
 #pragma once
 
-#include <array>
+#include <vector>
 
 namespace SbeppEncoding {
-    std::array<char, 256> encodeBook();
-    void decodeBook(std::array<char, 256>& buf);
+    std::vector<char> encodeBook();
+    void decodeBook(std::vector<char>& buf);
 }
 

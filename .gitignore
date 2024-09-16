@@ -25,3 +25,4 @@ cpp/test_graph/.vsconan/
 cpp/test_graph/.vscode/
 cpp/test_graph/build/
 cpp/test_graph/src/generated/
+serialized/

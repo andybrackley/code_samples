@@ -13,7 +13,7 @@ fn main() {
     let mut engine = MatchingEngine::new();
     let trading_pair = TradingPair::new("BTC".to_string(), "USD".to_string());
     
-    engine.add_new_market(trading_pair.clone());
+    engine.add_new_market(&trading_pair);
     let result = engine.place_limit_order(trading_pair.clone(), 5.5, bid);
 
     println!("{:?}", engine);

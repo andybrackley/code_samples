@@ -8,8 +8,8 @@ using namespace com::deribit::multicast;
 
 namespace SbeEncoding {
 
-std::array<char, 256> encodeBook() {
-    std::array<char, 256> buf{};
+std::vector<char> encodeBook() {
+    std::vector<char> buf(256);
 
     MessageHeader hdr = MessageHeader();
     hdr.wrap(buf.data(), 0, 0, buf.size())
@@ -26,7 +26,7 @@ std::array<char, 256> encodeBook() {
     return buf;
  }
 
-void decodeBook(std::array<char, 256>& buf) {
+void decodeBook(std::vector<char>& buf) {
     MessageHeader hdr = MessageHeader();
 
     hdr.wrap(buf.data(), 0, 0, buf.size());
@@ -37,7 +37,6 @@ void decodeBook(std::array<char, 256>& buf) {
     b.wrapForDecode(buf.data(), hdr.encodedLength(), actingBlockLength, actingVersion, buf.size());
 
     std::cout << "changeid: " << b.changeId() << " inst id: " << b.instrumentId() << std::endl;
-
 }
 
 }

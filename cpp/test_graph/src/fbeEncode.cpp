@@ -27,6 +27,7 @@ void decodeBook(std::vector<uint8_t>& buf) {
 
     deribit_multicast::Book book;
     reader.deserialize(book);
+    reader.reset();
 
     std::cout << "changeid: " << book.changedId << " inst id: " << book.instrumentId << std::endl;
 }
