@@ -8,25 +8,9 @@
 #include "sbeppEncode.h"
 #include "fbeEncode.h"
 
-template<typename T, typename TId>
-class TypedId {
-private:
-    const TId _id;
+#include "adhocSerialization/book.h"
+#include "adhocSerialization/bookModel.h"
 
-public:
-    explicit TypedId(TId id) : _id(id) {}
-    TId get() const { return _id; } 
-
-    const bool operator==(const TypedId<T, TId>& rhs) const {
-        return _id == rhs._id;
-    } 
-
-    const bool operator!=(const TypedId<T, TId>& rhs) const {
-        return !(this == rhs);
-    } 
-};
-
-using VectorId = TypedId<int, struct VectorIdTag>;
 
 const std::string getFilename(const std::string& name) {
     return "d:\\code_samples\\serialized\\" + name + ".cpp.bin";
@@ -34,7 +18,6 @@ const std::string getFilename(const std::string& name) {
 
 template<typename BufferT> using EncoderT = BufferT(*)();
 template<typename BufferT> using DecoderT = void(*)(BufferT&);
-
 
 template<typename BufferT>
 void run(const std::string& name, EncoderT<BufferT> encoder, DecoderT<BufferT> decoder) {
@@ -75,15 +58,36 @@ void readfile(const std::string& name, DecoderT<std::vector<BufferT>> decoder) {
 }
 
 int main(int, char**){
-    run("SbeEncoding", SbeEncoding::encodeBook, SbeEncoding::decodeBook);
-    run("SbeppEncoding", SbeppEncoding::encodeBook, SbeppEncoding::decodeBook);
-    run("FbeEncoding", FbeEncoding::encodeBook, FbeEncoding::decodeBook);
-    run("CapNProtoEncoding", CapnProtoEncoding::encodeBook, CapnProtoEncoding::decodeBook);
+    size_t size = 5;
+    int32_t id = 15;
+    uint64_t instId = 700;
+    char* name = "Test Name";
 
-    run("SbeEncoding.SbeppDecoding", SbeEncoding::encodeBook, SbeppEncoding::decodeBook);
-    run("SbeppEncoding.SbeDecoding", SbeppEncoding::encodeBook, SbeEncoding::decodeBook);
 
-    readfile("SbeEncoding", SbeEncoding::decodeBook);
-    readfile("CapnProtoEncoding", CapnProtoEncoding::decodeBook);
-    readfile("FbeEncoding", FbeEncoding::decodeBook);
+    Adhoc::Book b = Adhoc::Book { 1, 50, 1000 };
+    b.name = "Testing";
+
+    const std::vector<Adhoc::BufferT> buf = Adhoc::serialize(b);
+    
+    std::ofstream outfile(getFilename("Adhoc"), std::ios::out | std::ios::binary);
+    outfile.write(reinterpret_cast<const char*>(buf.data()), buf.size());
+    outfile.flush();
+    outfile.close();
+
+    
+    Adhoc::deserialize(buf);
+
+    printf("Sizeof Book %zu", sizeof(b));
+
+    // run("SbeEncoding", SbeEncoding::encodeBook, SbeEncoding::decodeBook);
+    // run("SbeppEncoding", SbeppEncoding::encodeBook, SbeppEncoding::decodeBook);
+    // run("FbeEncoding", FbeEncoding::encodeBook, FbeEncoding::decodeBook);
+    // run("CapNProtoEncoding", CapnProtoEncoding::encodeBook, CapnProtoEncoding::decodeBook);
+
+    // run("SbeEncoding.SbeppDecoding", SbeEncoding::encodeBook, SbeppEncoding::decodeBook);
+    // run("SbeppEncoding.SbeDecoding", SbeppEncoding::encodeBook, SbeEncoding::decodeBook);
+
+    // readfile("SbeEncoding", SbeEncoding::decodeBook);
+    // readfile("CapnProtoEncoding", CapnProtoEncoding::decodeBook);
+    // readfile("FbeEncoding", FbeEncoding::decodeBook);
 }
