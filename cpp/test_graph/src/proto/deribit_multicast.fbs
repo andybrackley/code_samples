@@ -1,0 +1,9 @@
+namespace Deribit_Multicast;
+
+table Book {
+    changed_id: int32;
+    instrument_id: int64;
+    name: string;
+}
+
+root_type Book;

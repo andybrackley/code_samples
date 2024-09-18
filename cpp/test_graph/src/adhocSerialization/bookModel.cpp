@@ -4,14 +4,64 @@
 
 namespace Adhoc {
 
+    // std::move
+    // std::shared_ptr
+    // std::weak_ptr
+    // std::initializer_list
+
+    // Boost -- https://www.boost.org/
+    // Boost::Contract  / static_assert <cassert>
+    // Boost::outcome or std::experimental::expected
+    // https://en.cppreference.com/w/cpp/compiler_support
+    // https://cppcon2019.sched.com/event/SiVW - Defragmenting C++ ( Herb Sutter )
+    // https://www.youtube.com/watch?v=vrfYLlR8X8k&ab_channel=NOKIATechnologyCenterWroc%C5%82aw - Writing Fast Code 1 ( Andrei Alexandrescu )
+
+    // Exception handling:
+    //     Copy + Swap
+    /*
+        void func(std::string& str) {
+            auto tmp = std::string{str};  // Copy
+            tmp += f1();                  // Mutate copy, may throw
+            tmp += f2();                  // Mutate copy, may throw
+            std::swap(tmp, str);          // Swap, never throws
+        }
+    */
+   // Lambdas
+   /*
+        // Look for numbers which is larger than three 
+        auto is_above_3 = [](int v) { return v > 3; }; 
+        auto num_above_3 = std::count_if(v.begin(), v.end(), is_above_3);
+
+        // Capture a variable ( closure )
+
+        // By Value
+        auto is_above = [x](int i) { return i > x; };
+
+        // By Reference
+        auto is_above = [&x](int i) { return i > x; };
+
+        // Hard-code values:
+        auto some_func = [numbers = std::list<int>{4,2}]() {
+          for (auto i : numbers)
+            std::cout << i;
+        };
+        some_func();
+
+   */
+
+   // 
+   //  https://github.com/google/flatbuffers/blob/master/benchmarks/cpp/raw/raw_bench.cpp
+   // 
 const size_t headerSize = sizeof(size_t);
 
-const size_t& serialize_sizeT(const BufferT* buffer, size_t& offset) {
-    const size_t& value = buffer[offset += sizeof(size_t)];
+const size_t serialize_sizeT(const BufferT* buffer, size_t& offset) {
+    const size_t value = buffer[offset += sizeof(size_t)];
     return value;
 }
 
 std::vector<BufferT> serialize(const Book& book) {
+    const char* asBytes = reinterpret_cast<const char*>(&book);
+
     std::vector<BufferT> buffer; 
 
     size_t nameLength = std::strlen(book.name) + 1; // +1 for the null terminator

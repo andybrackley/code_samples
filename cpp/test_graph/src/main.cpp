@@ -7,6 +7,7 @@
 #include "sbeEncode.h"
 #include "sbeppEncode.h"
 #include "fbeEncode.h"
+#include "flatbuffersEncode.h"
 
 #include "adhocSerialization/book.h"
 #include "adhocSerialization/bookModel.h"
@@ -58,12 +59,6 @@ void readfile(const std::string& name, DecoderT<std::vector<BufferT>> decoder) {
 }
 
 int main(int, char**){
-    size_t size = 5;
-    int32_t id = 15;
-    uint64_t instId = 700;
-    char* name = "Test Name";
-
-
     Adhoc::Book b = Adhoc::Book { 1, 50, 1000 };
     b.name = "Testing";
 
@@ -87,7 +82,11 @@ int main(int, char**){
     // run("SbeEncoding.SbeppDecoding", SbeEncoding::encodeBook, SbeppEncoding::decodeBook);
     // run("SbeppEncoding.SbeDecoding", SbeppEncoding::encodeBook, SbeEncoding::decodeBook);
 
+    run("FlatBuffers", FlatBuffersEncode::encodeBook, FlatBuffersEncode::decodeBook);
+
+
     // readfile("SbeEncoding", SbeEncoding::decodeBook);
     // readfile("CapnProtoEncoding", CapnProtoEncoding::decodeBook);
     // readfile("FbeEncoding", FbeEncoding::decodeBook);
+    // readfile("FlatBuffers", FbeEncoding::decodeBook);
 }

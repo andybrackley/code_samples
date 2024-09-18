@@ -48,6 +48,10 @@ D:\code_samples\cpp\test_graph>.\tools\fbec --cpp -i ./src/proto/deribit_multica
 [Docs](https://chronoxor.github.io/FastBinaryEncoding/)
 [GitHub](https://github.com/chronoxor/FastBinaryEncoding)
 
+### FlatBuffers
+
+[CMake_Usage](https://github.com/ogmacorp/OgmaNeo/blob/3edd6b3e9ff044ab7a924d1871c92b8762390379/CMakeLists.txt#L152)
+
 ## Samples
 
 [chronoxor_github](https://github.com/chronoxor/CppSerialization)
