@@ -12,8 +12,6 @@ sbeppc_compile_schema(
 
 find_package(CapnProto REQUIRED)
 
-# capnp_generate_cpp(${CMAKE_CURRENT_SOURCE_DIR}/src/generated/capnproto/deribit/include ${CMAKE_CURRENT_SOURCE_DIR}/src/generated/capnproto/deribit/src ${CMAKE_CURRENT_SOURCE_DIR}/src/proto/deribit_multicast.cpnp) 
-
 set(CAPNPC_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src/generated/capnproto/deribit/")
 capnp_generate_cpp(capnpDeribitSources capnpDeribitHeaders ${CMAKE_CURRENT_SOURCE_DIR}/src/proto/deribit_multicast.cpnp) 
 
