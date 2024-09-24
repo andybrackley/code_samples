@@ -1,4 +1,5 @@
 #include <iostream>
+#include <thread>
 
 #include "..\generated\book_generated.h"
 
@@ -70,6 +71,31 @@ aeron::fragment_handler_t printStringMessage()
     };
 }
 
+void runSubscriptionHandler(std::atomic<bool>& signal, aeron::Subscription& subscriber) {
+    aeron::FragmentAssembler fragmentAssembler(printStringMessage());
+    aeron::fragment_handler_t handler = fragmentAssembler.handler();    
+    Graph::Aeron::Subscriber::handle(subscriber, [&]() -> bool { return signal; } , handler );
+}
+
+typedef std::array<std::uint8_t, 256> buffer_t;
+
+void runPublisher(std::atomic<bool>& signal, aeron::Publication& publisher) {
+    AERON_DECL_ALIGNED(buffer_t buffer, 16);
+    aeron::concurrent::AtomicBuffer srcBuffer(&buffer[0], buffer.size());
+
+    char message[] = { 'a', 'b', 'c' };
+
+    srcBuffer.putBytes(0, reinterpret_cast<std::uint8_t*>(message), sizeof(message));
+    const std::int64_t result = publisher.offer(srcBuffer, 0, sizeof(message));
+
+    if(result > 0) {
+        std::cout << "Sent: " << result << std::endl;
+    } else {
+        std::cout << "Failed with code: " << result << " pub connection: " << publisher.isConnected() << " status: " << publisher.channelStatus() << std::endl;
+        signal.store(false);
+    }
+}
+
 int main(int argc, char** argv) {    const auto consumerNode = setupConsumerNode(); 
 
     std::atomic<bool> isRunning{true};
@@ -85,20 +111,19 @@ int main(int argc, char** argv) {    const auto consumerNode = setupConsumerNode
     Graph::FlatBufferUtils::FromBuffer(buf);
 
      
-    auto publisher = Graph::Aeron::Publisher::Create(Graph::Aeron::Settings());
-    // publisher->offer(srcBuffer, 0, messageLen);
+    Graph::Aeron::Settings settings("");
+    auto connection = Graph::Aeron::Connection::Connect(settings);
 
-    // 
-    auto subscriber = Graph::Aeron::Subscriber::Create(Graph::Aeron::Settings());
+    auto publisher = Graph::Aeron::Publisher::Create(*connection, settings);
+    Graph::Aeron::dumpConnectionStatus(*publisher);
 
-    aeron::FragmentAssembler fragmentAssembler(printStringMessage());
-    aeron::fragment_handler_t handler = fragmentAssembler.handler();
-    Graph::Aeron::Subscriber::handle(*subscriber, [&isRunning]() -> bool { return isRunning; }, handler );
+    auto subscriber = Graph::Aeron::Subscriber::Create(*connection, settings);
 
-    // auto agent = Graph::Aeron::Subscriber::MyAgent();
-    // AgentRunner.startOnThread(runner);
+    std::thread tSub(runSubscriptionHandler, std::ref(isRunning), std::ref(*subscriber));
+    std::thread tPub(runPublisher, std::ref(isRunning), std::ref(*publisher));
 
-    std::cout << "Hello from graph main" << std::endl;
-    
+    std::cout << "Waiting for subscriber to close" << std::endl;
+    tPub.join();
+    tSub.join();
     return 1;
 }

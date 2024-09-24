@@ -21,3 +21,17 @@ $ cmake --build --preset conan-debug
 
 $ rm -rf build
 
+
+
+## Aeron Media Driver
+
+NOTE: We are using 1.41.6
+Run the media driver as follows:
+
+D:\code_samples\cpp\graph_aeron_flatbuffers\aeronMediaDriver>java -cp ./aeron-all-1.41.6.jar io.aeron.driver.MediaDriver
+
+Stats:
+D:\code_samples\cpp\graph_aeron_flatbuffers\aeronMediaDriver>java -cp aeron-all-1.41.6.jar io.aeron.samples.AeronStat
+
+[Download](https://central.sonatype.com/artifact/io.aeron/aeron-all/1.46.2/versions)
+

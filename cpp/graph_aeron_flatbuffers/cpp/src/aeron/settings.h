@@ -7,18 +7,39 @@
 namespace Graph {
 namespace Aeron {
     struct Settings {
-        const std::string channel = "1";
+        const std::string channel = "aeron:ipc";
         const std::int32_t streamId = 1;
+        const std::string dirPrefix;
+
+        Settings(const std::string& dir) : dirPrefix(dir) {}
     };
 
-    aeron::Context setupContext() {
-        aeron::Context context;
-        return context;
+    template<typename ConT>
+    void dumpConnectionStatus(const ConT& pub) {
+        const int channelStatus = pub.channelStatus();
+
+        std::cout << "Publication channel status: " << channelStatus << "(id=" << pub.channelStatusId() << ") "
+            << (channelStatus == aeron::ChannelEndpointStatus::CHANNEL_ENDPOINT_ACTIVE
+                    ? "ACTIVE"
+                    : std::to_string(channelStatus))
+            << std::endl;
     }
 
-    std::shared_ptr<aeron::Aeron> Connect(aeron::Context& context) {
-        std::shared_ptr<aeron::Aeron> connection = aeron::Aeron::connect(context);
-        return connection;
+    namespace Connection {
+        aeron::Context createContext(const Settings& settings) {
+            aeron::Context context;
+            if(!settings.dirPrefix.empty()) {
+                context.aeronDir(settings.dirPrefix);
+            }
+
+            return context;
+        }
+
+        std::shared_ptr<aeron::Aeron> Connect(const Settings& settings) {
+            auto context = createContext(settings);
+            std::shared_ptr<aeron::Aeron> connection = aeron::Aeron::connect(context);
+            return connection;
+        }
     }
 
     namespace Publisher {
@@ -29,6 +50,7 @@ namespace Aeron {
                 pub = connection.findPublication(pubId);
             }
 
+            dumpConnectionStatus(*pub);
             return pub;
         }
 
@@ -37,10 +59,8 @@ namespace Aeron {
             return GetById(connection, id);
         }
 
-        std::shared_ptr<aeron::Publication> Create(const Settings& settings) {
-            auto context = setupContext();
-            auto connection = Connect(context);
-            auto publisher = SetupAndGet(*connection, settings);
+        std::shared_ptr<aeron::Publication> Create(aeron::Aeron& connection, const Settings& settings) {
+            auto publisher = SetupAndGet(connection, settings);
             return publisher;
         }
     }
@@ -56,6 +76,7 @@ namespace Aeron {
                 sub = connection.findSubscription(subId);
             }
 
+            dumpConnectionStatus(*sub);
             return sub;
         }
 
@@ -64,10 +85,8 @@ namespace Aeron {
             return GetById(connection, id);
         }
 
-        std::shared_ptr<aeron::Subscription> Create(const Settings& settings) {
-            auto context = setupContext();
-            auto connection = Connect(context);
-            auto subscriber = SetupAndGet(*connection, settings);
+        std::shared_ptr<aeron::Subscription> Create(aeron::Aeron& connection, Settings& settings) {
+            auto subscriber = SetupAndGet(connection, settings);
             return subscriber;
         }
 
