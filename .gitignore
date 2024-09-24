@@ -27,9 +27,9 @@ cpp/test_serialization/.vscode/
 cpp/test_serialization/.vsconan/
 cpp/test_serialization/src/generated/
 
-cpp/graph_aeron_flatbuffers/build/
-cpp/graph_aeron_flatbuffers/cpp/build/
-cpp/graph_aeron_flatbuffers/cpp/.vscode/
-cpp/graph_aeron_flatbuffers/cpp/.vsconan/
+graph_aeron_flatbuffers/cpp/build/
+graph_aeron_flatbuffers/cpp/.vscode/
+graph_aeron_flatbuffers/cpp/.vsconan/
+graph_aeron_flatbuffers/cpp/CMakeUserPresets.json
 
 serialized/

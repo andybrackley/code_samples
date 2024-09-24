@@ -1,0 +1,6 @@
+[package]
+name = "graph_aeron_flatbuffers"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
