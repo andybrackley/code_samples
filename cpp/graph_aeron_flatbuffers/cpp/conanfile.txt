@@ -1,0 +1,8 @@
+[requires]
+aeron/1.41.4
+flatbuffers/24.3.25
+[generators]
+CMakeDeps
+CMakeToolchain
+[layout]
+cmake_layout

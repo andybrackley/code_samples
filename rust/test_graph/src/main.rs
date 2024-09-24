@@ -1,6 +1,9 @@
 use std::fs::File;
 use std::io::{Read};
 
+// FBE CppGenerator : https://github.com/chronoxor/FastBinaryEncoding/blob/master/source/generator_cpp.cpp
+// FBE C# Generator: https://github.com/chronoxor/FastBinaryEncoding/blob/master/source/generator_csharp.cpp
+
 #[derive(Debug)]
 struct Book {
     id: i32,
@@ -26,8 +29,20 @@ fn deserialize(buf: &Vec<u8>) {
 
     offset += 4;
 
-    let nextBytes: [u8; 4] = buf[offset..offset + 4].try_into().expect("Eeek");
-    let id = i32::from_le_bytes(nextBytes);
+    let next_bytes: [u8; 4] = buf[offset..offset + 4].try_into().expect("Eeek");
+    let id = i32::from_le_bytes(next_bytes);
+    println!("Read the Int: {}", id);
+
+    offset += 4;
+
+    let next_bytes2: [u8; 4] = buf[offset..offset + 4].try_into().expect("Eeek");
+    let id = i32::from_le_bytes(next_bytes2);
+    println!("Read the Int: {}", id);
+
+    offset += 4;
+
+    let next_bytes3: [u8; 4] = buf[offset..offset + 4].try_into().expect("Eeek");
+    let id = i32::from_le_bytes(next_bytes3);
     println!("Read the Int: {}", id);
 
 }

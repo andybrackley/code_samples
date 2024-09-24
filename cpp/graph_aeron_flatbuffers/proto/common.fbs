@@ -1,0 +1,48 @@
+namespace Graph;
+
+enum Currency : short {
+    USD,
+    USDC,
+    USDT,
+    BTC,
+    ETH,
+    SOL,
+    XRP,
+    MATIC,
+    EUR,
+    GBP,
+}
+
+enum Exchange : short {
+    Internal,
+    Binance,
+    Bitstamp,
+    Bitfinex,
+    Bittrex,
+    Coinbase,
+    Deribit,
+    Gateio,
+    Gemini,
+    Itbit,
+    Kraken,
+    Lmax,
+    Okcoin,
+    Okx    
+}
+
+struct Price { 
+    value:float64;
+}
+
+struct Size { 
+    value:float64;
+}
+
+struct Timestamp { 
+    value: int64; 
+}
+
+table InstrumentId {
+    exchange: Exchange;
+    id: string;
+}

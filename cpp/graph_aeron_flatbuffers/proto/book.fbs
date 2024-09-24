@@ -1,0 +1,45 @@
+// See: D:\hqb\src\common\book.jl
+
+include "common.fbs";
+
+namespace Graph;
+
+enum BookUpdateType : short { Update, Snapshot }
+enum LevelUpdateType : short { New, Change, Delete, Republish }
+
+struct Level {
+    price:Price;
+    size:Size;
+    recent_size:Size;
+    last_update:Timestamp; // Do we need Timestamp here?  Can it be derived from when we receive the LevelUpdate
+}
+
+table Book {
+    bids: [Level]; 
+    asks: [Level];
+}
+
+struct LevelUpdate { 
+    type:LevelUpdateType;
+    level:Level;
+}
+
+table BookUpdate {
+    timestamp: Timestamp;
+    timestamp_exchange: Timestamp;  // NOTE: This is optional
+    id: InstrumentId;
+    bids: [Level];
+    asks: [Level];
+    type: BookUpdateType;
+}
+
+table FullBookUpdate {
+    timestamp: Timestamp;
+    timestamp_exchange: Timestamp;  // NOTE: This is optional
+    id: InstrumentId;
+    bids: [Level];
+    asks: [Level];
+}
+
+
+root_type BookUpdate;

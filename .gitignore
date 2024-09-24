@@ -21,8 +21,15 @@ Cargo.lock
 #.idea/
 
 cpp/.vs/
-cpp/test_graph/.vsconan/
-cpp/test_graph/.vscode/
-cpp/test_graph/build/
-cpp/test_graph/src/generated/
+
+cpp/test_serialization/build
+cpp/test_serialization/.vscode/
+cpp/test_serialization/.vsconan/
+cpp/test_serialization/src/generated/
+
+cpp/graph_aeron_flatbuffers/build/
+cpp/graph_aeron_flatbuffers/cpp/build/
+cpp/graph_aeron_flatbuffers/cpp/.vscode/
+cpp/graph_aeron_flatbuffers/cpp/.vsconan/
+
 serialized/
