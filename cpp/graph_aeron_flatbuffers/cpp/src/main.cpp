@@ -101,8 +101,8 @@ void runPublisher(std::atomic<bool>& signal, aeron::Publication& publisher) {
     }
 }
 
-int main(int argc, char** argv) {    const auto consumerNode = setupConsumerNode(); 
-
+int main(int argc, char** argv) {    
+    const auto consumerNode = setupConsumerNode(); 
     std::atomic<bool> isRunning{true};
 
     const auto producerNode = setupProducerNode(); 
