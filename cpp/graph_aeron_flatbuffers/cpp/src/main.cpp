@@ -63,11 +63,12 @@ aeron::fragment_handler_t printStringMessage()
 {
     return [&](const aeron::AtomicBuffer &buffer, aeron::util::index_t offset, aeron::util::index_t length, const aeron::Header &header)
     {
-        std::cout
-            << "Message to stream " << header.streamId() << " from session " << header.sessionId()
-            << "(" << length << "@" << offset << ") <<"
-            << std::string(reinterpret_cast<const char *>(buffer.buffer()) + offset, static_cast<std::size_t>(length))
-            << ">>" << std::endl;
+        std::vector<uint8_t> bookBuf;
+
+        bookBuf.reserve(length);
+        bookBuf.insert(bookBuf.end(), buffer.buffer() + offset, buffer.buffer() + length + offset);
+
+        Graph::FlatBufferUtils::FromBuffer(bookBuf);
     };
 }
 
@@ -83,10 +84,14 @@ void runPublisher(std::atomic<bool>& signal, aeron::Publication& publisher) {
     AERON_DECL_ALIGNED(buffer_t buffer, 16);
     aeron::concurrent::AtomicBuffer srcBuffer(&buffer[0], buffer.size());
 
-    char message[] = { 'a', 'b', 'c' };
+    const auto bookBuffer = Graph::FlatBufferUtils::AsBuffer();
 
-    srcBuffer.putBytes(0, reinterpret_cast<std::uint8_t*>(message), sizeof(message));
-    const std::int64_t result = publisher.offer(srcBuffer, 0, sizeof(message));
+    srcBuffer.putBytes(0, bookBuffer.data(), bookBuffer.size());
+    const std::int64_t result = publisher.offer(srcBuffer, 0, bookBuffer.size());
+
+    // Might be able to do the above by directly setting memory rather than having to do a publish
+    // See the samples: https://github.com/real-logic/aeron/blob/master/aeron-samples/src/main/cpp/StreamingPublisher.cpp
+    // srcBuffer.setMemory(0, settings.messageLength, 0);
 
     if(result > 0) {
         std::cout << "Sent: " << result << std::endl;
