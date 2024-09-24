@@ -59,7 +59,7 @@ GraphImpl::Vector setupProducerNode() {
     });
 }
 
-aeron::fragment_handler_t printStringMessage()
+aeron::fragment_handler_t printStringMessage(std::atomic<bool>& signal)
 {
     return [&](const aeron::AtomicBuffer &buffer, aeron::util::index_t offset, aeron::util::index_t length, const aeron::Header &header)
     {
@@ -69,13 +69,14 @@ aeron::fragment_handler_t printStringMessage()
         bookBuf.insert(bookBuf.end(), buffer.buffer() + offset, buffer.buffer() + length + offset);
 
         Graph::FlatBufferUtils::FromBuffer(bookBuf);
+        signal.store(false);
     };
 }
 
 void runSubscriptionHandler(std::atomic<bool>& signal, aeron::Subscription& subscriber) {
-    aeron::FragmentAssembler fragmentAssembler(printStringMessage());
+    aeron::FragmentAssembler fragmentAssembler(printStringMessage(signal));
     aeron::fragment_handler_t handler = fragmentAssembler.handler();    
-    Graph::Aeron::Subscriber::handle(subscriber, [&]() -> bool { return signal; } , handler );
+    Graph::Aeron::Subscriber::handle(subscriber, [&]() -> bool { return signal.load(); } , handler );
 }
 
 typedef std::array<std::uint8_t, 256> buffer_t;
@@ -130,5 +131,7 @@ int main(int argc, char** argv) {
     std::cout << "Waiting for subscriber to close" << std::endl;
     tPub.join();
     tSub.join();
+
+    std::cout << "Publish/Subscribe has completed.  Closing...." << std::endl;
     return 1;
 }
