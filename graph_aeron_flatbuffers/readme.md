@@ -1,6 +1,6 @@
 ## Generate IDL Files
 
-D:\graph>.\tools\flatc.exe --cpp -o ./cpp/generated ./proto/common.fbs ./proto/book.fbs
+D:\code_samples\graph_aeron_flatbuffers>.\tools\flatc.exe --cpp -o ./cpp/generated ./proto/common.fbs ./proto/book.fbs
 
 ## Build
 
@@ -28,10 +28,10 @@ $ rm -rf build
 NOTE: We are using 1.41.6
 Run the media driver as follows:
 
-D:\code_samples\cpp\graph_aeron_flatbuffers\aeronMediaDriver>java -cp ./aeron-all-1.41.6.jar io.aeron.driver.MediaDriver
+D:\code_samples\graph_aeron_flatbuffers\tools\aeronMediaDriver>java -cp ./aeron-all-1.41.6.jar io.aeron.driver.MediaDriver
 
 Stats:
-D:\code_samples\cpp\graph_aeron_flatbuffers\aeronMediaDriver>java -cp aeron-all-1.41.6.jar io.aeron.samples.AeronStat
+D:\code_samples\graph_aeron_flatbuffers\tools\aeronMediaDriver>java -cp aeron-all-1.41.6.jar io.aeron.samples.AeronStat
 
 [Download](https://central.sonatype.com/artifact/io.aeron/aeron-all/1.46.2/versions)
 
