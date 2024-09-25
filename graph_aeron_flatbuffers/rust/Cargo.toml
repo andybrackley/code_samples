@@ -5,3 +5,4 @@ edition = "2021"
 
 [dependencies]
 flatbuffers = "24.3.25"
+aeron = "0.2.0"

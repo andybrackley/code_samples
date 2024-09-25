@@ -1,3 +1,7 @@
+## Resources:
+
+[How_to_learn_modern_Rust](https://github.com/joaocarvalhoopen/How_to_learn_modern_Rust)
+
 ## Flatbuffers
 
 // NOTES:  
@@ -19,6 +23,12 @@ D:\code_samples\graph_aeron_flatbuffers>.\tools\flatc.exe --rust -o ./rust/gener
 
 [Docs](https://docs.rs/libaeron-sys/latest/libaeron_sys/)
 [GitHub](https://github.com/bspeice/libaeron-sys)
+
+## Aeron
+
+[Crates](https://crates.io/crates/aeron)
+[Docs](https://docs.rs/aeron/0.2.0/aeron/)
+[GitHub](https://github.com/rafalpiotrowski/aeron-rs)
 
 ## Aeron-Rs
 
