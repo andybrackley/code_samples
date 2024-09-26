@@ -12,13 +12,13 @@ mod book_generated;
 pub use book_generated::graph as book_graph;
 
 mod flatbufferutils;
-use flatbufferutils::{ createBook, processBook };
+use flatbufferutils::{ create_book, process_book };
 
 
 fn main() {
-    let buffer = createBook::as_buffer();
+    let buffer = create_book::as_buffer();
 
-    processBook::from_buffer(&buffer);
+    process_book::from_buffer(&buffer);
     
     println!("Hello, world!");
 }
