@@ -1,4 +1,4 @@
-## Resources:
+## Resources
 
 [How_to_learn_modern_Rust](https://github.com/joaocarvalhoopen/How_to_learn_modern_Rust)
 
