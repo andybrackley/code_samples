@@ -101,7 +101,7 @@ pub mod subscriber {
 
     pub fn handle(subscription: &Arc<Mutex<aeron::subscription::Subscription>>, handler: &mut impl FnMut(&AtomicBuffer, Index, Index, &Header), is_running: Arc<AtomicBool>) {
         let fragment_limit = 10;
-        let idle_strategy = SleepingIdleStrategy::new(1000);
+        let idle_strategy = SleepingIdleStrategy::new(0);
 
         while is_running.load(Ordering::Relaxed) {
             let fragments_read = subscription.lock().unwrap().poll(handler, fragment_limit);
