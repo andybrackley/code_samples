@@ -1,0 +1,4 @@
+name = "graph_aeron_flatbuffers"
+uuid = "3dd04163-ae76-4e4b-9940-167a77e48598"
+authors = ["andybrackley "]
+version = "0.1.0"

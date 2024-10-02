@@ -21,6 +21,12 @@ D:\code_samples\graph_aeron_flatbuffers>.\tools\flatc.exe --rust -o ./rust/gener
 
 ## libaeron-sys
 
+Need to set the LIBCLANG_PATH in the environment variables to the x64 version of Clang.
+
+i.e.
+
+SET LIBCLANG_PATH=C:\Program Files\Microsoft Visual Studio\2022\Community\VC\Tools\Llvm\x64\bin
+
 [Docs](https://docs.rs/libaeron-sys/latest/libaeron_sys/)
 [GitHub](https://github.com/bspeice/libaeron-sys)
 

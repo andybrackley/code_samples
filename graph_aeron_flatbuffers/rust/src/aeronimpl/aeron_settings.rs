@@ -3,18 +3,20 @@ use std::ffi::CString;
 
 extern crate aeron;
 
+#[derive(Clone)]
 pub struct Settings {
     dir_prefix: String,
-    channel: CString,
-    stream_id: i32
+    channel: String,
+    stream_id: i32,
 }
 
 impl Settings {
-    pub fn new() -> Self {
+    pub fn new(dir_prefix: String) -> Self {
         Self {
-            dir_prefix: String::new(),
-            channel: CString::new("aeron::ipc").expect("Invalid string for channel"),
-            stream_id: 1
+            dir_prefix: dir_prefix,
+            // channel: CString::new("aeron:ipc").expect("Invalid string for channel"),
+            channel: String::from("aeron:ipc"),
+            stream_id: 1,
         }
     }
 }
@@ -25,6 +27,10 @@ impl Settings {
 
 pub fn dump_connection_status() {
 
+}
+
+fn str_to_c(val: &str) -> CString {
+    CString::new(val).expect("Error converting str to CString")
 }
 
 pub mod connection {
@@ -39,6 +45,7 @@ pub mod connection {
             context.set_aeron_dir(settings.dir_prefix.clone());
         }
 
+        println!("Using CnC file: {}", context.cnc_file_name());
         return context;
     }
 
@@ -51,11 +58,11 @@ pub mod connection {
 
 pub mod publisher {
     use std::sync::{Arc, Mutex};
-    use super::Settings;
+    use super::{str_to_c, Settings};
 
     pub fn get_by_id(connection: &mut aeron::aeron::Aeron, pub_id: i64) -> Arc<Mutex<aeron::publication::Publication>> {
         let mut publication = connection.find_publication(pub_id);
-        while(publication.is_err()) {
+        while publication.is_err() {
             std::thread::yield_now();
             publication = connection.find_publication(pub_id);
         }
@@ -64,17 +71,17 @@ pub mod publisher {
     }
 
     pub fn create(connection: &mut aeron::aeron::Aeron, settings: &Settings) -> Arc<Mutex<aeron::publication::Publication>> {
-        let pub_id = connection.add_publication(settings.channel.clone(), settings.stream_id).expect("Error adding publication");
+        let pub_id = connection.add_publication(str_to_c(&settings.channel), settings.stream_id).expect("Error adding publication");
         let publisher = get_by_id(connection, pub_id);
         return publisher;
     }
 }
 
 pub mod subscriber {
-    use std::sync::{Arc, Mutex};
+    use std::sync::{atomic::{AtomicBool, Ordering}, Arc, Mutex};
     use aeron::{concurrent::{atomic_buffer::AtomicBuffer, logbuffer::header::Header, strategies::SleepingIdleStrategy, strategies::Strategy}, utils::types::Index};
 
-    use super::Settings;
+    use super::{str_to_c, Settings};
 
     pub fn get_by_id(connection: &mut aeron::aeron::Aeron, sub_id: i64) -> Arc<Mutex<aeron::subscription::Subscription>> {
         let mut subscription = connection.find_subscription(sub_id);
@@ -87,16 +94,16 @@ pub mod subscriber {
     }
 
     pub fn create(connection: &mut aeron::aeron::Aeron, settings: &Settings) -> Arc<Mutex<aeron::subscription::Subscription>> {
-        let sub_id = connection.add_subscription(settings.channel.clone(), settings.stream_id).expect("Failed to add subscription");
+        let sub_id = connection.add_subscription(str_to_c(&settings.channel), settings.stream_id).expect("Failed to add subscription");
         let subscription = get_by_id(connection, sub_id);
         return subscription;
     }
 
-    pub fn handle(subscription: &Arc<Mutex<aeron::subscription::Subscription>>, handler: &mut impl FnMut(&AtomicBuffer, Index, Index, &Header)) {
+    pub fn handle(subscription: &Arc<Mutex<aeron::subscription::Subscription>>, handler: &mut impl FnMut(&AtomicBuffer, Index, Index, &Header), is_running: Arc<AtomicBool>) {
         let fragment_limit = 10;
         let idle_strategy = SleepingIdleStrategy::new(1000);
 
-        while(true) {
+        while is_running.load(Ordering::Relaxed) {
             let fragments_read = subscription.lock().unwrap().poll(handler, fragment_limit);
             idle_strategy.idle_opt(fragments_read);
         }

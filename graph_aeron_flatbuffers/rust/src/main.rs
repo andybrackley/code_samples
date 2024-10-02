@@ -1,3 +1,4 @@
+
 extern crate flatbuffers;
 
 #[allow(dead_code, unused_imports)]
@@ -5,7 +6,8 @@ extern crate flatbuffers;
 
 #[path = "../generated/common_generated.rs"]
 pub mod common_generated;
-use std::sync::{Arc, Mutex};
+use core::slice;
+use std::{sync::{atomic::AtomicBool, Arc, Mutex}, thread};
 
 use aeron::{concurrent::{atomic_buffer::{AlignedBuffer, AtomicBuffer}, logbuffer::header::Header }, publication::Publication, subscription::Subscription, utils::types::Index};
 use aeronimpl::aeron_settings::{connection, publisher, subscriber, Settings};
@@ -20,26 +22,28 @@ use flatbufferutils::{ create_book, process_book };
 
 mod aeronimpl;
 
-// lazy_static! {
-//     pub static ref RUNNING: AtomicBool = AtomicBool::from(true);
-// }
+fn print_message_wrapper(is_running: Arc<AtomicBool>) -> impl Fn(&AtomicBuffer, Index, Index, &Header) {
+    let is_running = is_running.clone();
 
-fn print_message(buffer: &AtomicBuffer, offset: Index, length: Index, header: &Header) {
-    unsafe {
-        println!("Received message");
+    move | buffer: &AtomicBuffer, offset: Index, length: Index, _header: &Header | {
+        unsafe {
+            let slice = slice::from_raw_parts_mut(buffer.buffer().offset(offset as isize), length as usize);
+            process_book::from_buffer(&slice.to_vec());
+            is_running.store(false, std::sync::atomic::Ordering::Relaxed);
+        }
     }
 }
 
-fn run_subscriber(subscriber: &Arc<Mutex<Subscription>>) {
-    let mut print_frag = print_message;
+fn run_subscriber(subscriber: &Arc<Mutex<Subscription>>, is_running: Arc<AtomicBool>) {
+    let mut print_frag = print_message_wrapper(is_running.clone());
     let mut fragment_assembler = aeron::fragment_assembler::FragmentAssembler::new(&mut print_frag, None);
     let mut fragment_handler = fragment_assembler.handler();
 
-    subscriber::handle(&subscriber, &mut fragment_handler);
+    subscriber::handle(&subscriber, &mut fragment_handler, is_running.clone());
 }
     
 
-fn run_publisher(publisher: &Arc<Mutex<Publication>>) {
+fn run_publisher(publisher: &Arc<Mutex<Publication>>, is_running: &AtomicBool) {
     let mut srcBuffer = create_book::as_buffer();
     process_book::from_buffer(&srcBuffer);
 
@@ -59,18 +63,26 @@ fn run_publisher(publisher: &Arc<Mutex<Publication>>) {
     }
 }
 
-fn main() {
 
-    let settings = Settings::new();
+fn main() {
+    let settings = Settings::new(String::from("C:\\Users\\andyb\\AppData\\Local\\Temp\\aeron-andyb"));
     let connection_result = connection::connect(&settings);
 
     match connection_result {
         Ok(mut connection) => {
+            let running_raw = Arc::new(AtomicBool::from(true));
+            let running_pub = running_raw.clone();
+            let running_sub = running_raw.clone();
+
+            println!("Aeron connection setup, running publish/subscribe");
             let publisher = publisher::create(&mut connection, &settings);
             let subscriber = subscriber::create(&mut connection, &settings);
                     
-            run_publisher(&publisher);
-            run_subscriber(&subscriber);
+            let publisher_thread = thread::spawn(move|| {run_publisher(&publisher, &running_pub)});
+            let sub_thread = thread::spawn(move|| {run_subscriber(&subscriber, running_sub)} );
+        
+            let _ = publisher_thread.join();
+            let _ = sub_thread.join();
         },
 
         Err(error) => {
@@ -78,6 +90,5 @@ fn main() {
         }
     }
     
-
-    println!("Hello, world!");
+    println!("Completed Publish/Subscribe");
 }

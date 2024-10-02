@@ -32,6 +32,7 @@ namespace Aeron {
                 context.aeronDir(settings.dirPrefix);
             }
 
+            std::cout << "Using cnc::file:" << context.cncFileName() << std::endl;
             return context;
         }
 

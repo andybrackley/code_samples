@@ -6,3 +6,7 @@ edition = "2021"
 [dependencies]
 flatbuffers = "24.3.25"
 aeron = "0.2.0"
+env_logger = "0.11.5"
+libaeron-sys = "1.44.1"
+libc = "0.2.159"
+log = "0.4.22"
