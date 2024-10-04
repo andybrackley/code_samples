@@ -310,8 +310,27 @@ function FlatBuffers.read(t::Table{T1}, ::Type{T}=T1) where {T1, T}
 		o = offset(t, soff[i])
         R, isunionvector, nullable = typetoread(i == 1 ? nothing : args[end], T, TT)
         if o == 0
-            push!(args, nullable ? nothing : default(T, TT, T.name.names[i]))
-        else
+			# Patch bug when deserializing the BookUpdate struct defined as:
+			#   struct BookUpdate{A, B, C, D, E}
+			# The following generates a method for:
+			#    Vector{D} => Vector{Level}
+			# and
+			#    Vector{E} => Vector{Level}
+			# Which leads to an ambiguous call during the deserialize
+			#=
+Candidates:
+  default(::Type{BookUpdate{A, B, C, D, E}}, ::Type{Vector{D}}, sym) where {A, B, C, D, E}
+    @ Main.Graph D:\code_samples\graph_aeron_flatbuffers\julia\FlatBuffers\src\macros.jl:217
+  default(::Type{BookUpdate{A, B, C, D, E}}, ::Type{Vector{E}}, sym) where {A, B, C, D, E}
+    @ Main.Graph D:\code_samples\graph_aeron_flatbuffers\julia\FlatBuffers\src\macros.jl:217
+
+Possible fix, define
+  default(::Type{BookUpdate{A, B, C, D, D}}, ::Type{Vector{D}}, ::Any) where {A, B, C, D}
+			=#
+
+#            push!(args, nullable ? nothing : default(T, TT, T.name.names[i]))
+			push!(args, nullable ? nothing : default(R, TT, T.name.names[i]))
+ 		else
             if isunionvector
                 eval(:(newr = getvalue($t, $o, $R)))
                 eval(:(n = length($R.types)))

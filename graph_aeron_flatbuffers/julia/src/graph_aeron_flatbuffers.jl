@@ -2,7 +2,8 @@
 
 
 
-
+# Override our path to FlatBuffers as it currently has a bug
+# when trying to deserialize the BookUpdate struct
 flatBufferPath = pwd() * "\\FlatBuffers"
 if !(flatBufferPath in LOAD_PATH)
    pushfirst!(LOAD_PATH, flatBufferPath)
