@@ -2,3 +2,6 @@ name = "graph_aeron_flatbuffers"
 uuid = "3dd04163-ae76-4e4b-9940-167a77e48598"
 authors = ["andybrackley "]
 version = "0.1.0"
+
+[deps]
+FlatBuffers = "53afe959-3a16-52fa-a8da-cf864710bae9"
