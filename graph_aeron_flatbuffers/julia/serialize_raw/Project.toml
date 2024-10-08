@@ -1,0 +1,4 @@
+name = "serialize_raw"
+uuid = "a15069ab-3614-4ea0-862c-af97b0b6d6a2"
+authors = ["andybrackley "]
+version = "0.1.0"

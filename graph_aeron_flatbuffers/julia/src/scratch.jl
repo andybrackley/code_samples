@@ -1,14 +1,32 @@
+include("messages/book_update.jl")
+include("../serialize_raw/src/generated/book_update.jl")
 
-mutable struct T{A, B} 
-    bids::Vector{A}
-    asks::Vector{B}
+bids:: Vector{Level} = [ Level(1), Level(2), Level(3) ]
+asks:: Vector{Level} = [ Level(4), Level(3), Level(2) ]
+
+t = BookUpdate(Timestamp(100), Timestamp(110), InstrumentId(ExchangeDeribit, "InstId::1234"), BookUpdateTypeUpdate, bids, asks)
+
+stream = IOBuffer()
+
+write(stream, Int32(0))
+size = serializeBookUpdate(stream, t)
+seekstart(stream)
+write(stream, Int32(size))
+
+filename = "..\\serialized\\adhoc\\julia.bookupdate.bin"
+
+open(filename, "w") do file 
+    write(file, take!(stream))
 end
 
-const Ints = T{Int64, Int64}
-
-i1 = Ints([], [])
+println("Written $size bytes to stream")
 
 
-function test(::Type{$T}, ::Type{$TT}, sym) 
-    println("In Test")
+readBuffer = IOBuffer()
+open(filename, "r") do file
+    write(readBuffer, read(file))
 end
+    
+bytes = take!(readBuffer)
+deserializeBookUpdate(bytes)
+
