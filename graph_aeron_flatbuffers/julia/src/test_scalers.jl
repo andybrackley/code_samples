@@ -5,7 +5,9 @@ function test(items:: Vector{T}) where {T}
     typename = string(T)
     scalarStream = IOBuffer()
 
-    serialize(scalarStream, items)
+    serializeTime = @timed serialize(scalarStream, items)
+    println("SerializeTime::$typename == $serializeTime")
+
     filename = "..\\serialized\\adhoc\\julia.scalars.$typename.bin"
     open(filename, "w") do file 
         write(file, take!(scalarStream))
@@ -19,7 +21,9 @@ function test(items:: Vector{T}) where {T}
     bytes = take!(readBuffer)
     off::Int32 = 0
 
-    new_vec, new_pos = deserialize(bytes, off, Vector{T})
+    new_vec_pos = @timed (deserialize(bytes, off, Vector{T}))
+    println("DeserializeTime::$typename == $new_vec_pos")
+    new_vec, pos = new_vec_pos.value
 
     isSame = items == new_vec
     println("Read Vec{$typename}::isSame::$isSame::$new_vec")
