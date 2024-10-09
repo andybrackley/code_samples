@@ -1,11 +1,11 @@
 include("common.jl")
 
-# module SerializeRaw
+module SerializeRaw
 
-# const Scalar = Main.Scalar
-# const IdTypes = Main.IdTypes
-# const Bytes = Main.Bytes
-# const Optional = Main.Optional
+const Scalar = Main.Scalar
+const IdTypes = Main.IdTypes
+const Bytes = Main.Bytes
+const Optional = Main.Optional
 
 function serialize(stream::IO, i:: T) where {T <: Scalar } 
     type = string(T)
@@ -46,7 +46,7 @@ function serialize(stream::IO, vec:: Vector{T}) where {T}
     end
 end
 
-function serialize(stream::IO, optional::Optional{T}) where {T} 
+function serializeAsOption(stream::IO, optional::Optional{T}) where {T}
     if isnothing(optional)
         serialize(stream, Char(0)) # Write Null to stream so we can identify this when we read it back
     else
@@ -56,7 +56,7 @@ function serialize(stream::IO, optional::Optional{T}) where {T}
         # get erased and you're left with just the underlying type.
         # I think this will come back as an issue when I look at implementing full Unions 
 
-        # serialize(stream, Char(1)) # Write a value to stream to align with the Null.  TODO: We can probably figure out in the deserialize we have a value based on it not being null
+        serialize(stream, Char(1)) # Write a value to stream to align with the Null.  TODO: We can probably figure out in the deserialize we have a value based on it not being null
         serialize(stream, optional)
     end
 
@@ -64,14 +64,32 @@ function serialize(stream::IO, optional::Optional{T}) where {T}
     println("Written Optional Char.  New position = $streamPos")
 end
 
-# isunionwithnothing(T) = T isa Union && T.a == Nothing && !(isa(T.b, Union))
+function serialize(stream::IO, optional::Optional{T}) where {T} 
+    return serializeAsOption(stream, optional)
+end
 
-# function serialize(stream::IO, element::T) where {T}
-#     isUnion = isunionwithnothing(T)
-#     if isUnion 
+end # End Module SerializeRaw
 
-#     else
-#         SerializeRaw.serialize(stream, element)
-#     end
+function serialize(stream::IO, element::T) where {T}
+    SerializeRaw.serialize(stream, element)
+end
 
-# end
+function selectFunction(::Type{T}) where {T} 
+    return SerializeRaw.serialize::Function
+end
+
+function selectFunction(::Type{Optional{T}}) where {T} 
+    return SerializeRaw.serializeAsOption::Function
+end
+
+function serialize(stream::IO, elements::Vector{T}) where {T}
+    isUnion = isunionwithnothing(T)
+    serializer = selectFunction(T)
+
+    vector_len = length(elements)
+    serialize(stream, vector_len)
+
+    for element in elements
+        serializer(stream, element)
+    end
+end

@@ -35,3 +35,6 @@ struct InstrumentId
     exchange:: Exchange
     id::String
 end
+
+isunionwithnothing(T) = T isa Union && T.a == Nothing && !(isa(T.b, Union))
+sizeof_type(T) = if T == Char return 1 else return sizeof(T) end

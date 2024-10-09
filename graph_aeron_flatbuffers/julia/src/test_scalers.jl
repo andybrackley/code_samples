@@ -4,11 +4,8 @@ include("../serialize_raw/src/generated/book_update.jl")
 function test(items:: Vector{T}) where {T}
     typename = string(T)
     scalarStream = IOBuffer()
- 
-    for element in items
-        serialize(scalarStream, element)
-    end
 
+    serialize(scalarStream, items)
     filename = "..\\serialized\\adhoc\\julia.scalars.$typename.bin"
     open(filename, "w") do file 
         write(file, take!(scalarStream))
@@ -22,15 +19,11 @@ function test(items:: Vector{T}) where {T}
     bytes = take!(readBuffer)
     off::Int32 = 0
 
-    new_vec = Vector{T}()
-    for i in 1:length(items)
-        item, off = deserialize(bytes, off, T)
-        push!(new_vec, item)
-    end
+    new_vec, new_pos = deserialize(bytes, off, Vector{T})
 
     isSame = items == new_vec
+    println("Read Vec{$typename}::isSame::$isSame::$new_vec")
     @assert isSame
-    println("Read Vec{$typename}::$new_vec")
 end
 
 test(['a','b','c','d'] )
@@ -40,6 +33,7 @@ test([ Int64(10), Int64(100), Int64(1000), Int64(999999),])
 test(["Test1","Test2","Test3","Test4","Test5"])
 
 optVec::Vector{Optional{Int64}} = [
+    0,   # NOTE: This is failing due to the hack of inserting a Char(0) to represent None
     100,
     nothing, 
     200,

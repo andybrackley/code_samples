@@ -49,6 +49,39 @@ function deserialize(bytes:: Bytes, offset::Int32, ::Type{Optional{T}}) where {T
     # union_all = Base.unwrap_unionall(T)
     # tail = Base.tuple_type_head(union_all)
     # inner_T = Base.unwrap_unionall(T).parameters[2]
-    value, newOffset = deserialize(bytes, Int32(offset), T)
+    value, newOffset = deserialize(bytes, Int32(newOffset), T)
     return value, newOffset
+end
+
+function deserialize(bytes::Bytes, offset::Int32, ::Type{Vector{T}}) where {T}
+    veclen, newOffset::Int32 = deserialize(bytes, offset, Int64)
+
+    if isunionwithnothing(T) 
+        new_vec = Vector{T}()
+        for i in 1:veclen
+            item, newOffset = deserialize(bytes, newOffset, T)
+            push!(new_vec, item)
+        end
+        return new_vec, newOffset
+    elseif T == String
+        new_vec = Vector{T}()
+        for i in 1:veclen
+            item, newOffset = deserialize(bytes, newOffset, AbstractString)
+            push!(new_vec, item)
+        end
+        return new_vec, newOffset
+    else 
+        typeSize = sizeof_type(T)
+        size = veclen * typeSize
+
+        ptr = pointer(bytes) + newOffset
+        raw = unsafe_wrap(Array, ptr, size)
+
+        if T == Char 
+            value = Vector{T}(raw)
+        else
+            value = reinterpret(T, raw)
+        end
+        return value, (newOffset + size )
+    end
 end
