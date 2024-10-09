@@ -43,3 +43,13 @@ optVec::Vector{Optional{Int64}} = [
     12345567890
 ]
 test(optVec) 
+
+optStrVec::Vector{Optional{String}} = [
+    "Test1",
+    nothing,
+    "Test2",
+    nothing,
+    "Test3"
+]
+
+test(optStrVec)
