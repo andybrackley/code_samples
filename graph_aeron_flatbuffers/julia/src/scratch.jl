@@ -4,7 +4,7 @@ include("../serialize_raw/src/generated/book_update.jl")
 bids:: Vector{Level} = [ Level(1), Level(2), Level(3) ]
 asks:: Vector{Level} = [ Level(4), Level(3), Level(2) ]
 
-t = BookUpdate(Timestamp(100), Timestamp(110), InstrumentId(ExchangeDeribit, "InstId::1234"), BookUpdateTypeUpdate, bids, asks)
+t = BookUpdate(Timestamp(100), nothing, InstrumentId(ExchangeDeribit, "InstId::1234"), BookUpdateTypeSnapshot, bids, asks)
 
 stream = IOBuffer()
 
@@ -30,3 +30,4 @@ end
 bytes = take!(readBuffer)
 deserializeBookUpdate(bytes)
 
+sizeof(Int)

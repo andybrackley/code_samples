@@ -1,8 +1,11 @@
 include("common.jl")
 
+# module SerializeRaw
+
 # const Scalar = Main.Scalar
 # const IdTypes = Main.IdTypes
 # const Bytes = Main.Bytes
+# const Optional = Main.Optional
 
 function serialize(stream::IO, i:: T) where {T <: Scalar } 
     type = string(T)
@@ -22,7 +25,7 @@ function serialize(stream::IO, i:: T) where {T <: Scalar }
  
  function serialize(stream::IO, i:: T) where { T <: AbstractString }
     type = string(T)
-    len = length(i)
+    len::Int32 = length(i)
     # size = sizeof(T)
 
     println("String::Type: $type, length: $len, value: $i")
@@ -43,3 +46,32 @@ function serialize(stream::IO, vec:: Vector{T}) where {T}
     end
 end
 
+function serialize(stream::IO, optional::Optional{T}) where {T} 
+    if isnothing(optional)
+        serialize(stream, Char(0)) # Write Null to stream so we can identify this when we read it back
+    else
+        # If the value isn't nothing we'll just write the value to the stream
+        # As long as the value isn't a Null this will work.
+        # Unfortunately I'm having some issues in Julia where Union types such as Optional
+        # get erased and you're left with just the underlying type.
+        # I think this will come back as an issue when I look at implementing full Unions 
+
+        # serialize(stream, Char(1)) # Write a value to stream to align with the Null.  TODO: We can probably figure out in the deserialize we have a value based on it not being null
+        serialize(stream, optional)
+    end
+
+    streamPos = position(stream)
+    println("Written Optional Char.  New position = $streamPos")
+end
+
+# isunionwithnothing(T) = T isa Union && T.a == Nothing && !(isa(T.b, Union))
+
+# function serialize(stream::IO, element::T) where {T}
+#     isUnion = isunionwithnothing(T)
+#     if isUnion 
+
+#     else
+#         SerializeRaw.serialize(stream, element)
+#     end
+
+# end
