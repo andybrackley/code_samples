@@ -32,7 +32,7 @@ end
 
 test(['a','b','c','d'] )
 test([ Int8(10), Int8(100), Int8(120), Int8(127),])
-test([ Int32(10), Int32(100), Int32(1000), Int32(999999),])
+test([ Int32(10), Int32(100), Int32(1000), Int32(999999),Int32(123345),Int32(5555555),Int32(6666666),Int32(77777777)])
 test([ Int64(10), Int64(100), Int64(1000), Int64(999999),])
 test(["Test1","Test2","Test3","Test4","Test5"])
 

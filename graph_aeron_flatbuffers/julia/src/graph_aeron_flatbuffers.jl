@@ -28,14 +28,27 @@ bookUpdate::BookUpdate = BookUpdate(
 
 # See: https://github.com/rjkat/flatbuffers-julia/blob/master/samples/sample_binary.jl
 
+for i in 1:5
+    io = IOBuffer()
+    FlatBuffers.serialize(io, bookUpdate)
+
+    bytes = take!(io)
+    BookUpdate(bytes)
+end
+
 io = IOBuffer()
-FlatBuffers.serialize(io, bookUpdate)
+timeSerialize = @timed FlatBuffers.serialize(io, bookUpdate)
+
+println("FlatBuffers::SerializeTime::$timeSerialize")
 
 bytes = take!(io)
-inflated = BookUpdate(bytes)
+timeDeserialize = @timed BookUpdate(bytes)
 
 
-instId = inflated.id
+println("FlatBuffers::DeserializeTime::$timeDeserialize")
+
+
+instId = timeDeserialize.value.id
 
 println("Inflated: $instId")
 
