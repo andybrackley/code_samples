@@ -8,26 +8,20 @@ const Bytes = Main.Bytes
 const Optional = Main.Optional
 
 function serialize(stream::IO, i:: T) where {T <: Scalar } 
-    type = string(T)
-    size = sizeof(T)
     write(stream, i) 
  end
 
  function serialize(stream::IO, i:: T) where {T <: Enum}
-    type = string(T)
-    size = sizeof(T)
     write(stream, i) 
  end
  
  function serialize(stream::IO, i:: T) where { T <: AbstractString }
-    type = string(T)
     len::Int32 = length(i)
     write(stream, len)
     write(stream, i) 
  end
  
 function serialize(stream::IO, vec:: Vector{T}) where {T} 
-    typename = string(T)
     sizeOfVec = length(vec)
 
     write(stream, Int32(sizeOfVec))
@@ -50,7 +44,7 @@ function serializeAsOption(stream::IO, optional::Optional{T}) where {T}
         serialize(stream, optional)
     end
 
-    streamPos = position(stream)
+    # streamPos = position(stream)
 end
 
 function serialize(stream::IO, optional::Optional{T}) where {T} 
@@ -72,7 +66,7 @@ function selectFunction(::Type{Optional{T}}) where {T}
 end
 
 function serialize(stream::IO, elements::Vector{T}) where {T}
-    isUnion = isunionwithnothing(T)
+    # isUnion = isunionwithnothing(T)
     serializer = selectFunction(T)
 
     vector_len = length(elements)

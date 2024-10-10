@@ -29,11 +29,24 @@ end
 function run_julia_serialization_test()
     stream = IOBuffer()
     timed_julia_serialization = @timed JuliaSerialization.run_julia_serialize_test(t, stream)
-    
+
+    pos = position(stream)
+    println("JuliaSerialization::Wrote::$pos")
+    println("timed::run_julia::serialize_test::$timed_julia_serialization")
+
     seekstart(stream)
+
+    # TODO: Not quite sure why but when running the below the code blows up with EOFError
+    #       During the deserialize
+    # filename = "..\\serialized\\adhoc\\julia.standard.bookupdate.bin"
+    # open(filename, "w") do file 
+    #     write(file, take!(stream))
+    # end
+
+    # seekstart(stream)
+
     timed_julia_deserialization = @timed JuliaSerialization.run_julia_deserialize_test(stream)
     
-    println("timed::run_julia::serialize_test::$timed_julia_serialization")
     println("timed::run_julia::deserialize_test::$timed_julia_deserialization")
 
     value = timed_julia_deserialization.value
@@ -52,6 +65,7 @@ end
 
 function run_deserialize_test(bytes::Bytes)
     return deserializeBookUpdate(bytes)
+    # return "NoOp", 0
 end
 
 function warmup_serialization_test() 
@@ -93,7 +107,7 @@ end
 bids:: Vector{Level} = [ Level(1), Level(2), Level(3) ]
 asks:: Vector{Level} = [ Level(4), Level(3), Level(2) ]
 
-t = BookUpdate(Timestamp(100), nothing, InstrumentId(ExchangeDeribit, "InstId::1234"), BookUpdateTypeSnapshot, bids, asks)
+t = BookUpdate(Timestamp(100), Timestamp(110), InstrumentId(ExchangeDeribit, "InstId::1234"), BookUpdateTypeSnapshot, bids, asks)
 
 println("============== Start Running Julia Serialization Tests ===================")
 warmup_julia_serialization_test()

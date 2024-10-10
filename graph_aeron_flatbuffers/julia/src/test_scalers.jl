@@ -1,5 +1,8 @@
-include("messages/book_update.jl")
-include("../serialize_raw/src/generated/book_update.jl")
+# include("messages/book_update.jl")
+# include("../serialize_raw/src/generated/book_update.jl")
+
+include("../serialize_raw/src/serialize.jl")
+include("../serialize_raw/src/deserialize.jl")
 
 function test(items:: Vector{T}) where {T}
     typename = string(T)
@@ -37,7 +40,7 @@ test([ Int64(10), Int64(100), Int64(1000), Int64(999999),])
 test(["Test1","Test2","Test3","Test4","Test5"])
 
 optVec::Vector{Optional{Int64}} = [
-    0,   # NOTE: This is failing due to the hack of inserting a Char(0) to represent None
+    0,
     100,
     nothing, 
     200,
