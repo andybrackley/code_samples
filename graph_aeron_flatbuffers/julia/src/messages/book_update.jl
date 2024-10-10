@@ -4,7 +4,7 @@ export BookUpdate, BookUpdateFull
 
 mutable struct BookUpdate
     time:: Timestamp
-    # timestamp_exch::Optional{Timestamp}
+    timestamp_exch::Optional{Timestamp}
     instId:: InstrumentId
     updateType:: BookUpdateType
 
