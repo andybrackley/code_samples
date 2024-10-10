@@ -6,7 +6,9 @@ include("shared.jl")
 
 function serializeBookUpdate(stream::IO, obj::BookUpdate)
     serialize(stream, obj.time)
-    SerializeRaw.serializeAsOption(stream, obj.timestamp_exch)
+
+    # TODO: This isn't serializing as an Optional when an actual Timestamp is set.
+    serialize(stream, obj.timestamp_exch) 
     serialize(stream, obj.instId)
     serialize(stream, obj.updateType)
 

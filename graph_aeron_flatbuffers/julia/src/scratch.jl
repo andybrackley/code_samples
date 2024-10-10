@@ -107,7 +107,7 @@ end
 bids:: Vector{Level} = [ Level(1), Level(2), Level(3) ]
 asks:: Vector{Level} = [ Level(4), Level(3), Level(2) ]
 
-t = BookUpdate(Timestamp(100), Timestamp(110), InstrumentId(ExchangeDeribit, "InstId::1234"), BookUpdateTypeSnapshot, bids, asks)
+t = BookUpdate(Timestamp(100), nothing, InstrumentId(ExchangeDeribit, "InstId::1234"), BookUpdateTypeSnapshot, bids, asks)
 
 println("============== Start Running Julia Serialization Tests ===================")
 warmup_julia_serialization_test()
