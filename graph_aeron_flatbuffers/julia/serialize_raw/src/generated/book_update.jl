@@ -20,7 +20,7 @@ end
 
 function serializeBookUpdate(stream::IO, obj::BookUpdate)
     serialize(stream, obj.time)
-    serialize(stream, obj.timestamp_exch)
+    # serialize(stream, obj.timestamp_exch)
     serialize(stream, obj.instId)
     serialize(stream, obj.updateType)
 
@@ -31,18 +31,14 @@ end
 
 function deserializeBookUpdate(bytes:: Bytes)  
     size, pos = deserialize(bytes, Int32(0), Int32)
-    # println("Deserialize expecting: $size bytes")
-
     timestamp, pos = deserialize(bytes, Int32(pos), Timestamp)
-    # println("Read::Timestamp::$timestamp")
-
-    timestamp_exch, pos = deserialize(bytes, Int32(pos), Optional{Timestamp})
-    # println("Read::Timestamp::$timestamp_exch")
-
+    # timestamp_exch, pos = deserialize(bytes, Int32(pos), Optional{Timestamp})
     instId, pos = deserialize(bytes, Int32(pos), InstrumentId)
-    # println("Read::InstId::$instId")
-
     updateType, pos = deserialize(bytes, Int32(pos), BookUpdateType)
-    # println("Read::UpdateType::$updateType")
-    return pos
+
+    bids, pos = deserialize(bytes, Int32(pos), Vector{Level})
+    asks, pos = deserialize(bytes, Int32(pos), Vector{Level})
+    
+    bookUpdate = BookUpdate(timestamp, instId, updateType, bids, asks)
+    return bookUpdate, pos
 end

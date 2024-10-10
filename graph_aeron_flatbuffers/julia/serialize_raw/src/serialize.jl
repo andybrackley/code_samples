@@ -10,26 +10,18 @@ const Optional = Main.Optional
 function serialize(stream::IO, i:: T) where {T <: Scalar } 
     type = string(T)
     size = sizeof(T)
-
-    println("Type: $type, size: $size, value: $i")
     write(stream, i) 
  end
 
  function serialize(stream::IO, i:: T) where {T <: Enum}
     type = string(T)
     size = sizeof(T)
-
-    println("Enum::Type: $type, size: $size, value: $i")
     write(stream, i) 
  end
  
  function serialize(stream::IO, i:: T) where { T <: AbstractString }
     type = string(T)
     len::Int32 = length(i)
-    # size = sizeof(T)
-
-    println("String::Type: $type, length: $len, value: $i")
-    
     write(stream, len)
     write(stream, i) 
  end
@@ -38,9 +30,7 @@ function serialize(stream::IO, vec:: Vector{T}) where {T}
     typename = string(T)
     sizeOfVec = length(vec)
 
-    println("Size: $sizeOfVec, Type: $typename")
     write(stream, Int32(sizeOfVec))
-
     for (index, l) in enumerate(vec) 
         serialize(stream, l)
     end
@@ -61,7 +51,6 @@ function serializeAsOption(stream::IO, optional::Optional{T}) where {T}
     end
 
     streamPos = position(stream)
-    println("Written Optional Char.  New position = $streamPos")
 end
 
 function serialize(stream::IO, optional::Optional{T}) where {T} 

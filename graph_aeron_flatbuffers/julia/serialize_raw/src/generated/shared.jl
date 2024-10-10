@@ -8,12 +8,10 @@ include("../../../src/messages/common.jl")
 
 function serialize(stream::IO, id:: T) where { T <: IdTypes } 
     typename = string(T)
-    println("serialize::IdType::$typename: $id") 
     serialize(stream, id.value)
 end
 
 function serialize(stream::IO, inst:: InstrumentId) 
-    println("serializeInstrument: $inst") 
     serialize(stream, inst.exchange)
     serialize(stream, inst.id)
  end

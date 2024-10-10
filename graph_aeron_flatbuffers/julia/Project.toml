@@ -5,3 +5,4 @@ version = "0.1.0"
 
 [deps]
 FlatBuffers = "53afe959-3a16-52fa-a8da-cf864710bae9"
+Serialization = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
