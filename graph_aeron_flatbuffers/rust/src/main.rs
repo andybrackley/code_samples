@@ -64,7 +64,7 @@ fn run_publisher(publisher: &Arc<Mutex<Publication>>, is_running: &AtomicBool) {
 }
 
 
-fn main() {
+fn main_aeron_flatbuffers() {
     let settings = Settings::new(String::from("C:\\Users\\andyb\\AppData\\Local\\Temp\\aeron-andyb"));
     let connection_result = connection::connect(&settings);
 
@@ -91,4 +91,8 @@ fn main() {
     }
     
     println!("Completed Publish/Subscribe");
+}
+
+fn main() {
+    
 }
