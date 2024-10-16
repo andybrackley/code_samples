@@ -33,7 +33,7 @@
 #[cfg(test)]
 mod tests {
     use generator::*;
-    use parser::parsed_types::{ParsedField, ParsedVariableType};
+    use parser::{parsed_types::{ParsedField, ParsedVariableType}, types_outputter::output};
 
     #[test]
     fn invalid_mapping_gives_error() {
@@ -125,5 +125,14 @@ mod tests {
         };
 
         test_valid_type_mapping(&optional, &optional_expected);
+    }
+
+    #[test]
+    pub fn test_output_of_complex_type() {
+        let line = "multi_generics::Union{Vector{Union{Int64, TimeStamp, String}}, BookUpdateType}";
+        println!("Julia: {}", line);
+
+        let parsed = parser::types_parser::parse_field(line, 0);
+        output(parsed.unwrap());
     }
 }
