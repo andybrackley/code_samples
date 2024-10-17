@@ -1,3 +1,5 @@
+use crate::parser::parser_types::parse_field;
+
 use super::{parsed_types::{AbstractType, ParsedStruct}, parser_types::parse_type_definition, string_utils::split_preserving_braces};
 
 /// struct Person
@@ -56,15 +58,51 @@ pub fn parse_struct_part(line: &str) -> Result<ParsedStruct, String> {
 
 }
 
-pub fn parse_struct(_lines: &Vec<&str>, _line_number: &mut u32) -> Result<ParsedStruct, String> {
+pub fn parse_struct(lines: &Vec<&str>, line_number: &mut u32) -> Result<ParsedStruct, String> {
+    fn parse_struct_fields(struct_def: &mut ParsedStruct, lines: &Vec<&str>, line_number: &mut u32) {
+        let to_skip: usize = (*line_number).try_into().unwrap();
+        
+        for line in lines.iter().skip(to_skip) {
+            *line_number += 1;
 
-    // for line in lines.iter() {
+            let trimmed = line.trim();
+            if trimmed == "end" {
+                return;
+            }
 
-    //     *line_number += 1;
-    // }
+            let field_result = parse_field(line, *line_number);
+            if field_result.is_err() {
+                println!("Error Parsing Struct Fields::{}", field_result.clone().unwrap_err());
+            }
 
+            let field_def = field_result.unwrap();
+            struct_def.fields.push(field_def);
+        } 
+    }
 
+    let mut structs = Vec::new();
 
+    for line in lines.iter() {
+        let struct_res = parse_struct_part(line);
+        *line_number += 1;
+
+        match struct_res {
+            Ok(mut parsed_struct) => {
+                parse_struct_fields(&mut parsed_struct, &lines, line_number);
+                structs.push(parsed_struct);
+            },
+            Err(_) => {  }
+        };
+    };
     
-    return Err("Not Implemented".to_string());
+    return Ok(structs[0].clone());
+}
+
+pub fn are_structs_equal(lhs: &ParsedStruct, rhs: &ParsedStruct) -> bool {
+    if lhs.is_mutable != rhs.is_mutable { return false; }
+    if lhs.struct_name != rhs.struct_name { return false; }
+    if lhs.fields != rhs.fields { return false; }
+    if lhs.generic_arguments != rhs.generic_arguments { return false; }
+    if lhs.inherits_from != rhs.inherits_from { return false; }
+    return true;
 }

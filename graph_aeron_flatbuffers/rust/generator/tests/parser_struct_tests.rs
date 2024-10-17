@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use generator::parser::{parsed_types::ParsedVariableType, parser_structs::{parse_struct, parse_struct_part}};
+    use generator::parser::{parsed_types::{ParsedField, ParsedStruct, ParsedVariableType}, parser_structs::{parse_struct, parse_struct_part}};
 
     #[test] 
     pub fn parse_of_simple_struct_def_test() {
@@ -48,11 +48,25 @@ mod tests {
         end
         "#;
 
-        let lines: Vec<&str> = lines_str.split_ascii_whitespace().collect();
+        let lines: Vec<&str> = lines_str.split('\n').collect();
         let result = parse_struct(&lines, &mut 0);
     
         assert!(result.is_ok(), "Failed to parse struct with error: {}", result.unwrap_err());
-
-        println!("ParsedStruct: {:#?}", result.unwrap());
+        
+        let expected = ParsedStruct {
+            is_mutable: true,
+            struct_name: "Level".to_string(),
+            inherits_from: None, 
+            fields: vec![ 
+                ParsedField { field_name: "price".to_string(), field_type: ParsedVariableType::scaler("Price") },
+                ParsedField { field_name: "size".to_string(), field_type: ParsedVariableType::scaler("Size") },
+                ParsedField { field_name: "recent_size".to_string(), field_type: ParsedVariableType::scaler("Float64") },
+                ParsedField { field_name: "last_update".to_string(), field_type: ParsedVariableType::scaler("Timestamp") },
+            ],
+            generic_arguments: Vec::new()
+        };
+        
+        let result_struct = result.unwrap();
+        assert!(expected == result_struct, "Structs aren't equal, Expected: {:#?}, actual: {:#?}", expected, result_struct);
     }
 }
