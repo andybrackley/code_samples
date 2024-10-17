@@ -1,6 +1,46 @@
 #[cfg(test)]
 mod tests {
-    use generator::parser::{parsed_types::{ParsedField, ParsedStruct, ParsedVariableType}, parser_structs::{parse_struct, parse_struct_part}};
+    use generator::parser::{parsed_types::{AbstractType, AliasType, ParsedField, ParsedStruct, ParsedVariableType}, parser_structs::{parse_abstract_type_part, parse_alias_part, parse_struct, parse_struct_part}};
+
+    #[test]
+    pub fn parse_alias_type() {
+        let line = "const TestAlias{T, U} = TestImpl{T, U}";
+        let result = parse_alias_part(line);
+        assert!(result.is_ok(), "Parsing Failed with Error: {0}", result.unwrap_err());
+
+        let expected_generics = vec![
+            Box::new(ParsedVariableType::scaler("T")),
+            Box::new(ParsedVariableType::scaler("U")),
+        ];
+
+        let expected = AliasType {
+            alias_type: ParsedVariableType::generic("TestAlias", expected_generics.clone()),
+            target_type: ParsedVariableType::generic("TestImpl", expected_generics.clone())
+        };
+
+        let alias = result.unwrap();
+        assert!(expected == alias, "Expected: {:#?} not equal Actual: {:#?}", expected, alias);
+    }
+
+    #[test]
+    pub fn parse_abstract_type() {
+        let line = "abstract type Test{T, U} end";
+
+        let result = parse_abstract_type_part(line);
+
+        assert!(result.is_ok());
+
+        let expected = AbstractType {
+            struct_name: "Test".to_string(),
+            generic_arguments: vec![
+                Box::new(ParsedVariableType::scaler("T")),
+                Box::new(ParsedVariableType::scaler("U")),
+            ]
+        };
+
+        let abs_type = result.unwrap();
+        assert!(expected == abs_type, "Expected: {:#?} not equal Actual: {:#?}", expected, abs_type);
+    }
 
     #[test] 
     pub fn parse_of_simple_struct_def_test() {

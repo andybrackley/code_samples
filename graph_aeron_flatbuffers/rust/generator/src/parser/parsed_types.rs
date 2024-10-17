@@ -40,6 +40,12 @@ pub struct ParsedField {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AliasType {
+    pub alias_type: ParsedVariableType,
+    pub target_type: ParsedVariableType,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AbstractType {
     pub struct_name: String,
     pub generic_arguments: Vec<Box<ParsedVariableType>>
