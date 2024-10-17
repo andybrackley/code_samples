@@ -24,14 +24,7 @@ pub fn parse_generic_type(type_str: &str) -> ParsedVariableType {
         let name = scope.name.clone();
         let types = scope.types.clone();
 
-        let v = 
-            if types.is_empty() {
-                ParsedVariableType::Scaler(name.to_string())
-            } else {
-                ParsedVariableType::Generic(name, types)
-            };
-
-        return v;
+        return ParsedVariableType::Generic(&name, types)
     }
 
     fn parse_chars(chars: &[char], index: &mut usize, outer: &mut Scoped) -> ParsedVariableType {
@@ -82,6 +75,23 @@ pub fn parse_type_definition(field_type_str: &str) -> Result<ParsedVariableType,
     return Ok(field_type);
 }
 
+/// A field consists of a field name a separator :: and the field type,
+///   i.e. 
+///     is_block_trade::Bool
+/// Generic types such as Vector and Optional are surrounded by {}
+///   i.e.
+///      trade_id::Optional{TradeId}
+///      action::Union{AddOrder, EditOrder, CancelOrder}
+///   Given the definition:
+///      test_union::Union{Int64, TimeStamp, String}
+///   This will generate a structure as follows:
+///      ParsedField {
+///        field_name: "test_union",
+///        field_type: Generic(
+///            "Union",
+///            [Scaler("Int64",),Scaler("TimeStamp",),Scaler("String",),],
+///        ),
+///     }
 pub fn parse_field(line: &str, line_number: u32) -> Result<ParsedField, String> {
     let tokens: Vec<&str> = line.trim().split("::").collect();
 

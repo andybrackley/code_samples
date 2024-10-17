@@ -1,4 +1,4 @@
-use std::collections::{btree_set::Union, HashMap, HashSet};
+use std::{collections::{HashMap, HashSet}};
 
 use Helpers::create_union;
 
@@ -83,23 +83,23 @@ mod Helpers {
         println!("pub enum {} {{", name);
 
         for t in types {
-            match t.as_ref() {
-                ParsedVariableType::Scaler(s) => {
-                    let n = env.get_mapped(s);
-                    path.push_str(&s);
+            // match t.as_ref() {
+            //     ParsedVariableType::Scaler(s) => {
+            //         let n = env.get_mapped(s);
+            //         path.push_str(&s);
 
-                    println!("   As{n}({n}),");
-                },
+            //         println!("   As{n}({n}),");
+            //     },
 
-                // TODO: For the AsVec() implementation it also needs ALL the generic args
-                ParsedVariableType::Generic(s, ty) => {
-                    path.push_str(s);
-                    println!("CreateUnion::{}.{}", path, s);
+            //     // TODO: For the AsVec() implementation it also needs ALL the generic args
+            //     ParsedVariableType::Generic(s, ty) => {
+            //         path.push_str(s);
+            //         println!("CreateUnion::{}.{}", path, s);
 
-                    let n = env.get_mapped(s);
-                    println!("   As{n}({n}),");
-                },
-            }
+            //         let n = env.get_mapped(s);
+            //         println!("   As{n}({n}),");
+            //     },
+            // }
         }
         
         println!("}}");
@@ -114,26 +114,19 @@ pub fn output(field: ParsedField) {
     env_state.known_types.insert("BookUpdateType".to_string());
 
     fn print_field_type(field_name: &str, field_type: &ParsedVariableType, env: &EnvState) -> String {
-        match field_type {
-            ParsedVariableType::Scaler(type_name) => {
-                let type_name = env.get_mapped(type_name);
-                format!("{}", type_name)
-            },
-            ParsedVariableType::Generic(type_name, types) => {
-                let inner_types = types.into_iter().map(|t| print_field_type(format!("{}{}", field_name, type_name).as_str(), t, &env)).collect::<Vec<String>>().join(", ");
-                let type_name = env.get_mapped(type_name);
+        let types = &field_type.generic_args;
+        let type_name = env.get_mapped(&field_type.name);
+        let inner_types = types.into_iter().map(|t| print_field_type(format!("{}{}", field_name, type_name).as_str(), &t, &env)).collect::<Vec<String>>().join(", ");
 
-                let is_union = type_name == "Union";
-                if(is_union) {
-                    let union_name = create_union(env, field_name, &types);
-                }
+        let is_union = type_name == "Union";
+        if is_union {
+            let union_name = create_union(env, field_name, &types);
+        }
 
-                if inner_types.is_empty() {
-                    return format!("{}", type_name)
-                } else {
-                    format!("{}<{}>", type_name, inner_types)
-                }
-            }
+        if inner_types.is_empty() {
+            return format!("{}", type_name)
+        } else {
+            format!("{}<{}>", type_name, inner_types)
         }
     }
 

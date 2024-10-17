@@ -49,6 +49,8 @@ mod tests {
         assert!(t1.is_ok());
 
         let field = t1.unwrap();
+        println!("{:#?}", field);
+
         assert!(field.field_name == expected.field_name);
 
         let types_equal = field.field_type.compare(&expected.field_type);
@@ -61,7 +63,7 @@ mod tests {
 
         let expected = ParsedField {
             field_name: "test_i64".to_string(),
-            field_type: ParsedVariableType::Scaler("Int64".to_string())
+            field_type: ParsedVariableType::Scaler("Int64")
         };
 
         test_valid_type_mapping(test1, &expected);        
@@ -75,8 +77,8 @@ mod tests {
         let optional_expected = ParsedField {
             field_name: "timestamp_exch".to_string(),
             field_type: ParsedVariableType::Generic(
-                "Optional".to_string(), 
-                vec![ Box::new(ParsedVariableType::Scaler("Timestamp".to_string()))]
+                "Optional", 
+                vec![ Box::new(ParsedVariableType::Scaler("Timestamp"))]
             )
         };
 
@@ -87,14 +89,14 @@ mod tests {
     fn test_multiple_generic_cases() {
         let union_line = "test_union::Union{Int64, TimeStamp, String}";
         let union_types = vec![
-            Box::new(ParsedVariableType::Scaler("Int64".to_string())),
-            Box::new(ParsedVariableType::Scaler("TimeStamp".to_string())),
-            Box::new(ParsedVariableType::Scaler("String".to_string())),
+            Box::new(ParsedVariableType::Scaler("Int64")),
+            Box::new(ParsedVariableType::Scaler("TimeStamp")),
+            Box::new(ParsedVariableType::Scaler("String")),
         ];
 
         let union_expected = ParsedField {
             field_name: "test_union".to_string(),
-            field_type: ParsedVariableType::Generic("Union".to_string(), union_types)
+            field_type: ParsedVariableType::Generic("Union", union_types)
         };
 
         test_valid_type_mapping(&union_line, &union_expected);
@@ -104,20 +106,20 @@ mod tests {
     fn test_multiple_nested_generic_types() {
         let optional = "multi_generics::Union{Vector{Union{Int64, TimeStamp, String}}, BookUpdateType}";
         let inner_union_types = vec![
-            Box::new(ParsedVariableType::Scaler("Int64".to_string())),
-            Box::new(ParsedVariableType::Scaler("TimeStamp".to_string())),
-            Box::new(ParsedVariableType::Scaler("String".to_string())),
+            Box::new(ParsedVariableType::Scaler("Int64")),
+            Box::new(ParsedVariableType::Scaler("TimeStamp")),
+            Box::new(ParsedVariableType::Scaler("String")),
         ];
 
-        let inner_union = ParsedVariableType::Generic("Union".to_string(), inner_union_types);
+        let inner_union = ParsedVariableType::Generic("Union", inner_union_types);
 
         let vec_types = vec![
-            Box::new(ParsedVariableType::Generic("Vector".to_string(), vec!(Box::new(inner_union)))),
-            Box::new(ParsedVariableType::Scaler("BookUpdateType".to_string()))
+            Box::new(ParsedVariableType::Generic("Vector", vec!(Box::new(inner_union)))),
+            Box::new(ParsedVariableType::Scaler("BookUpdateType"))
         ];
 
         let outer_union_types = 
-            ParsedVariableType::Generic("Union".to_string(), vec_types);
+            ParsedVariableType::Generic("Union", vec_types);
         
         let optional_expected = ParsedField {
             field_name: "multi_generics".to_string(),
