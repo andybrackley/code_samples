@@ -73,7 +73,7 @@ pub struct ParsedField {
 #[derive(Debug, Clone)]
 pub struct AbstractType {
     pub struct_name: String,
-    pub generic_arguments: Vec<ParsedVariableType>
+    pub generic_arguments: Vec<Box<ParsedVariableType>>
 }
 
 #[derive(Debug, Clone)]
@@ -82,5 +82,5 @@ pub struct ParsedStruct {
     pub struct_name: String,
     pub fields: Vec<ParsedField>,
     pub inherits_from: Option<AbstractType>,
-    pub generic_arguments: Vec<ParsedVariableType>
+    pub generic_arguments: Vec<Box<ParsedVariableType>>
 }

@@ -33,7 +33,7 @@
 #[cfg(test)]
 mod tests {
     use generator::*;
-    use parser::{parsed_types::{ParsedField, ParsedVariableType}, types_outputter::output};
+    use parser::{parsed_types::{ParsedField, ParsedVariableType}, parser_types::parse_generic_type, types_outputter::output};
 
     #[test]
     fn invalid_mapping_gives_error() {
@@ -83,6 +83,21 @@ mod tests {
         };
 
         test_valid_type_mapping(&optional, &optional_expected);
+    }
+
+    #[test]
+    fn test_double_generic_params_on_struct() {
+        let struct_def = "SomeGeneric{T, U}";
+        let expected_args = vec![ 
+            Box::new(ParsedVariableType::Scaler("T")),
+            Box::new(ParsedVariableType::Scaler("U")),
+        ];
+        let expected = ParsedVariableType::Generic("SomeGeneric", expected_args);
+
+        let parsed = parse_generic_type(&struct_def);
+        assert!(expected.compare(&parsed));
+
+        println!("Parsed: {:#?}", parsed);
     }
 
     #[test]

@@ -1,21 +1,11 @@
-use super::{parsed_types::{AbstractType, ParsedStruct, ParsedVariableType}, parser_types::{parse_field, parse_type_definition}};
-
-pub fn parse_struct_name(name: &str) -> Result<String, String> {
-    let as_types = parse_type_definition(name);
-
-    match as_types {
-        Ok(t) => {
-            Ok(t.name)
-        },
-        Err(err) => Err(err)
-    }
-}
+use super::{parsed_types::{AbstractType, ParsedStruct, ParsedVariableType}, parser_types::{parse_field, parse_type_definition}, string_utils::split_preserving_braces};
 
 /// struct Person
 /// mutable struct Person
 /// mutable struct Person <: AbstractPerson
 pub fn parse_struct_part(line: &str) -> Result<ParsedStruct, String> {
-    let tokenized: Vec<&str> = line.split_whitespace().collect();
+    // let tokenized: Vec<&str> = line.split_whitespace().collect();
+    let tokenized: Vec<&str> = split_preserving_braces(line);
     let struct_id_pos = tokenized.iter().position(|&token| token == "struct");
     let tokenized_len = tokenized.len();
     
@@ -25,27 +15,37 @@ pub fn parse_struct_part(line: &str) -> Result<ParsedStruct, String> {
             
             let mut parsed_pos = pos + 1;
             let struct_name = tokenized[parsed_pos];
-            let type_def = parse_type_definition(struct_name);
+            let type_def_result = parse_type_definition(&struct_name);
 
-            println!("TypeDef::{:#?}", type_def);
-
-//             let as_field = parse_field(tokenized[parsed_pos], 0);
+            if type_def_result.is_err() {
+                return Err(format!("'struct' definition is malformed: {}: {line}", type_def_result.unwrap_err() ))
+            }
+            
+            let type_def = type_def_result.unwrap();
             parsed_pos += 1;
 
             let inherits_from = parsed_pos < tokenized_len && tokenized[parsed_pos] == "<:";
             let inherit_details = 
                 if inherits_from {
-                    Some(AbstractType { struct_name: "Test".to_string(), generic_arguments: Vec::new() })
+                    parsed_pos += 1;
+                    let abs_name = tokenized[parsed_pos];
+                    let as_type_result = parse_type_definition(abs_name);
+                    if as_type_result.is_err() {
+                        return Err(format!("'struct definition is malformed: {}: {line}", as_type_result.unwrap_err()))
+                    }
+
+                    let as_type = as_type_result.unwrap();
+                    Some(AbstractType { struct_name: as_type.name, generic_arguments: as_type.generic_args })
                 } else {
                     None
                 };
 
             Ok(ParsedStruct { 
                 is_mutable, 
-                struct_name: struct_name.to_string(), 
+                struct_name: type_def.name.to_string(), 
                 fields: Vec::new(), 
                 inherits_from: inherit_details,
-                generic_arguments: Vec::new()
+                generic_arguments: type_def.generic_args
              })
         },
         Some(_) => {
