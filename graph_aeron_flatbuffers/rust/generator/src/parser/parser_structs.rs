@@ -1,4 +1,4 @@
-use super::{parsed_types::{AbstractType, ParsedStruct, ParsedVariableType}, parser_types::{parse_field, parse_type_definition}, string_utils::split_preserving_braces};
+use super::{parsed_types::{AbstractType, ParsedStruct}, parser_types::parse_type_definition, string_utils::split_preserving_braces};
 
 /// struct Person
 /// mutable struct Person
@@ -56,12 +56,12 @@ pub fn parse_struct_part(line: &str) -> Result<ParsedStruct, String> {
 
 }
 
-pub fn parse_struct(lines: &Vec<&str>, line_number: &mut u32) -> Result<ParsedStruct, String> {
+pub fn parse_struct(_lines: &Vec<&str>, _line_number: &mut u32) -> Result<ParsedStruct, String> {
 
-    for line in lines.iter() {
+    // for line in lines.iter() {
 
-        *line_number += 1;
-    }
+    //     *line_number += 1;
+    // }
 
 
 

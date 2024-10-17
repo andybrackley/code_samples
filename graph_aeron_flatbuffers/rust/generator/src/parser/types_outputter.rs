@@ -1,6 +1,6 @@
-use std::{collections::{HashMap, HashSet}};
+use std::collections::{HashMap, HashSet};
 
-use Helpers::create_union;
+use helpers::create_union;
 
 use super::parsed_types::{ParsedField, ParsedVariableType};
 
@@ -9,8 +9,8 @@ use super::parsed_types::{ParsedField, ParsedVariableType};
 //     multi_generics: MultiGenericsType
 // }
 
-const OPEN_GENERIC_CHAR: &str = "<"; 
-const CLOSE_GENERIC_CHAR: &str = ">"; 
+const _OPEN_GENERIC_CHAR: &str = "<"; 
+const _CLOSE_GENERIC_CHAR: &str = ">"; 
 
 struct EnvState {
     builtin_types: HashMap<String, String>,
@@ -26,7 +26,7 @@ impl EnvState {
         type_lookup.insert("Vector".to_string(), "Vec".to_string());
         type_lookup.insert("Union".to_string(), "Union".to_string());
         
-        let mut known_types = HashSet::new();
+        let known_types = HashSet::new();
         EnvState {
             builtin_types: type_lookup,
             known_types: known_types
@@ -49,40 +49,24 @@ impl EnvState {
     }
 }
 
-mod Helpers {
-    use crate::parser::{parsed_types::ParsedVariableType, types_outputter::Helpers};
+mod helpers {
+    use crate::parser::{parsed_types::ParsedVariableType, string_utils::to_camel_case};
     use super::EnvState;
 
-    fn to_camel_case(s: &str) -> String {
-        let mut camel_case = String::new();
-        let mut upper_next = true;
-        for c in s.chars() {
-            if c == '_' {
-                upper_next = true;
-            } else if upper_next {
-                camel_case.push(c.to_ascii_uppercase());
-                upper_next = false;
-            } else {
-                camel_case.push(c);
-            }
-        }
-        camel_case
-    }
-
-    pub fn get_union_name(field_name: &str, types: &Vec<Box<ParsedVariableType>>) -> String {
+    pub fn get_union_name(field_name: &str, _: &Vec<Box<ParsedVariableType>>) -> String {
         // TODO:  Need a sensible way of creating the name of the enum
         format!("{}", to_camel_case(field_name))
     }
 
-    pub fn create_union(env: &EnvState, field_name: &str, types: &Vec<Box<ParsedVariableType>>) -> String {
+    pub fn create_union(_env: &EnvState, field_name: &str, types: &Vec<Box<ParsedVariableType>>) -> String {
         println!("Creating union for: {}", field_name);
         
         let name = get_union_name(field_name, types);
-        let mut path = name.clone();
+        let mut _path = name.clone();
 
         println!("pub enum {} {{", name);
 
-        for t in types {
+        // for t in types {
             // match t.as_ref() {
             //     ParsedVariableType::Scaler(s) => {
             //         let n = env.get_mapped(s);
@@ -100,7 +84,7 @@ mod Helpers {
             //         println!("   As{n}({n}),");
             //     },
             // }
-        }
+        // }
         
         println!("}}");
         return name;
@@ -120,7 +104,7 @@ pub fn output(field: ParsedField) {
 
         let is_union = type_name == "Union";
         if is_union {
-            let union_name = create_union(env, field_name, &types);
+            let _ = create_union(env, field_name, &types);
         }
 
         if inner_types.is_empty() {

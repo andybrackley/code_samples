@@ -31,14 +31,14 @@ pub struct ParsedVariableType {
     pub generic_args: Vec<Box<ParsedVariableType>>
 }
 impl ParsedVariableType {
-    pub fn Scaler(name: &str) -> ParsedVariableType { 
+    pub fn scaler(name: &str) -> ParsedVariableType { 
         ParsedVariableType {
             name: name.to_string(),
             generic_args: Vec::new()
         }
     }
 
-    pub fn Generic(name: &str, type_args: Vec<Box<ParsedVariableType>>) -> ParsedVariableType {
+    pub fn generic(name: &str, type_args: Vec<Box<ParsedVariableType>>) -> ParsedVariableType {
         ParsedVariableType {
             name: name.to_string(),
             generic_args: type_args

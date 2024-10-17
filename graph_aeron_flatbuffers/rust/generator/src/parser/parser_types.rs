@@ -24,7 +24,7 @@ pub fn parse_generic_type(type_str: &str) -> ParsedVariableType {
         let name = scope.name.clone();
         let types = scope.types.clone();
 
-        return ParsedVariableType::Generic(&name, types)
+        return ParsedVariableType::generic(&name, types)
     }
 
     fn parse_chars(chars: &[char], index: &mut usize, outer: &mut Scoped) -> ParsedVariableType {
