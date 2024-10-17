@@ -37,15 +37,15 @@ mod tests {
 
     #[test]
     fn invalid_mapping_gives_error() {
-        let not_enough_args = parser::types_parser::parse_field("field_name", 0);
+        let not_enough_args = parser::parser_types::parse_field("field_name", 0);
         assert!(not_enough_args.is_err());
 
-        let too_many_args = parser::types_parser::parse_field("field_name::type::extra", 0);
+        let too_many_args = parser::parser_types::parse_field("field_name::type::extra", 0);
         assert!(too_many_args.is_err());
     }
 
     fn test_valid_type_mapping(line: &str, expected: &ParsedField) {
-        let t1 = parser::types_parser::parse_field(line, 0);
+        let t1 = parser::parser_types::parse_field(line, 0);
         assert!(t1.is_ok());
 
         let field = t1.unwrap();
@@ -132,7 +132,7 @@ mod tests {
         let line = "multi_generics::Union{Vector{Union{Int64, TimeStamp, String}}, BookUpdateType}";
         println!("Julia: {}", line);
 
-        let parsed = parser::types_parser::parse_field(line, 0);
+        let parsed = parser::parser_types::parse_field(line, 0);
         output(parsed.unwrap());
     }
 }
