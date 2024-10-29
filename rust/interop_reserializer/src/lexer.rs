@@ -1,9 +1,9 @@
-use crate::lexer_types::{Token, TokenType};
+use crate::lexer_types::{ Token, TokenType };
 
 #[derive(Debug)]
 pub struct Parsed {
     pub tokens: Vec<Token>,
-    pub line_count: u32
+    pub line_count: u32,
 }
 
 pub struct Lexer {}
@@ -27,24 +27,29 @@ impl Lexer {
             "," => Some(TokenType::Comma),
             "\n" => Some(TokenType::NewLine),
             "" => None,
-            _ => Some(TokenType::Identifier(buffer.to_string()))
+            _ => Some(TokenType::Identifier(buffer.to_string())),
         }
     }
 
-    fn process_buffer(buffer: &mut String, tokens: &mut Vec<Token>, line_number: u32, char_pos: u32) -> Option<TokenType> {
+    fn process_buffer(
+        buffer: &mut String,
+        tokens: &mut Vec<Token>,
+        line_number: u32,
+        char_pos: u32
+    ) -> Option<TokenType> {
         match Lexer::check_buffer(&buffer) {
             Some(token) => {
                 buffer.clear();
                 let as_token = Token {
                     token_type: token.clone(),
                     line_number: line_number,
-                    char_pos: char_pos
+                    char_pos: char_pos,
                 };
 
                 tokens.push(as_token);
                 Some(token)
             }
-            None => None
+            None => None,
         }
     }
 
@@ -55,7 +60,7 @@ impl Lexer {
     pub fn parse(lines: &str) -> Parsed {
         let mut buffer = "".to_string();
         let mut tokens = Vec::new();
-        let mut line_number = if lines.is_empty()  { 0 } else { 1 };
+        let mut line_number = if lines.is_empty() { 0 } else { 1 };
         let mut char_pos = 0;
 
         for ch in lines.chars() {
@@ -67,17 +72,21 @@ impl Lexer {
                     //     char_pos = 0;
                     // }
 
-                    let result = Lexer::process_buffer(&mut buffer, &mut tokens, line_number, char_pos);
+                    let result = Lexer::process_buffer(
+                        &mut buffer,
+                        &mut tokens,
+                        line_number,
+                        char_pos
+                    );
 
                     match result {
-                        Some(_) => {},
+                        Some(_) => {}
                         None => {
                             buffer.clear();
                         }
                     }
-
-                },
-                '{' | '}' | ',' | '\n'  => {
+                }
+                '=' | '{' | '}' | ',' | '\n' => {
                     if ch == '\n' {
                         line_number += 1;
                         char_pos = 0;
@@ -95,21 +104,23 @@ impl Lexer {
                         Some(':') | Some('<') => {
                             buffer.push(ch);
                             Lexer::process_buffer(&mut buffer, &mut tokens, line_number, char_pos);
-                         }
+                        }
                         _ => {
                             let result = Lexer::check_buffer(&buffer);
-                            result.map(|t| tokens.push( Token { token_type: t, line_number, char_pos } ));                    
-        
+                            result.map(|t|
+                                tokens.push(Token { token_type: t, line_number, char_pos })
+                            );
+
                             buffer.clear();
                             buffer.push(ch);
                         }
                     }
-                },
-                ch => { 
+                }
+                ch => {
                     buffer.push(ch);
                 }
             }
-        };
+        }
 
         Lexer::process_buffer(&mut buffer, &mut tokens, line_number, char_pos);
 
@@ -117,12 +128,12 @@ impl Lexer {
         tokens.push(Token {
             token_type: TokenType::NewLine,
             line_number: line_number,
-            char_pos: 0 
+            char_pos: 0,
         });
 
         Parsed {
             tokens: tokens,
-            line_count: line_number
+            line_count: line_number,
         }
     }
 }

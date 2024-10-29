@@ -1,24 +1,23 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParsedVariableType {
     pub name: String,
-    pub generic_args: Vec<Box<ParsedVariableType>>
+    pub generic_args: Vec<Box<ParsedVariableType>>,
 }
 impl ParsedVariableType {
-    pub fn scaler(name: &str) -> ParsedVariableType { 
+    pub fn scaler(name: &str) -> ParsedVariableType {
         ParsedVariableType {
             name: name.to_string(),
-            generic_args: Vec::new()
+            generic_args: Vec::new(),
         }
     }
 
     pub fn generic(name: &str, type_args: Vec<Box<ParsedVariableType>>) -> ParsedVariableType {
         ParsedVariableType {
             name: name.to_string(),
-            generic_args: type_args
+            generic_args: type_args,
         }
     }
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParsedField {
@@ -29,13 +28,13 @@ pub struct ParsedField {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EnumValue {
     pub name: String,
-    pub value: Option<u32>
+    pub value: Option<i32>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EnumType {
-    pub name: String, 
-    pub values: Vec<EnumValue>
+    pub name: String,
+    pub values: Vec<EnumValue>,
 }
 
 // Rust = type TypeName<T, U> = TypeImpl<T, U>
@@ -49,7 +48,7 @@ pub struct AliasType {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AbstractType {
     pub struct_name: String,
-    pub generic_arguments: Vec<Box<ParsedVariableType>>
+    pub generic_arguments: Vec<Box<ParsedVariableType>>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -58,6 +57,5 @@ pub struct ParsedStruct {
     pub struct_name: String,
     pub fields: Vec<ParsedField>,
     pub inherits_from: Option<AbstractType>,
-    pub generic_arguments: Vec<Box<ParsedVariableType>>
+    pub generic_arguments: Vec<Box<ParsedVariableType>>,
 }
-
