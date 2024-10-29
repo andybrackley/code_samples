@@ -1,5 +1,9 @@
+pub mod parsed_scope;
 pub mod parsed_types;
 pub mod parser_types;
 pub mod types_outputter;
 pub mod parser_structs;
+pub mod parser_file;
+pub mod parser_alias;
+pub mod parser_abstract_type;
 pub mod string_utils;

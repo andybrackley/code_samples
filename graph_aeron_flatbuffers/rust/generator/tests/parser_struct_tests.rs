@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod tests {
-    use generator::parser::{parsed_types::{AbstractType, AliasType, ParsedField, ParsedStruct, ParsedVariableType}, parser_structs::{parse_abstract_type_part, parse_alias_part, parse_struct, parse_struct_part}};
+    use generator::parser::{parsed_types::{AbstractType, AliasType, ParsedField, ParsedStruct, ParsedVariableType}, parser_abstract_type::parse_abstract_type_part, parser_alias::parse_alias_part, parser_structs::{parse_struct, parse_struct_part}};
 
     #[test]
     pub fn parse_alias_type() {

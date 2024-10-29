@@ -1,93 +1,15 @@
 use crate::parser::parser_types::parse_field;
 
-use super::{parsed_types::{AbstractType, AliasType, ParsedStruct}, parser_types::parse_type_definition, string_utils::split_preserving_braces};
+use super::{parsed_scope::ParsedErrorTypes, parsed_types::{AbstractType, ParsedStruct}, parser_types::parse_type_definition, string_utils::split_preserving_braces};
 
+// pub fn parse_struct_part(line: &str) -> Result<ParsedStruct, ParsedErrorTypes> {}
+// pub fn parse_struct_line(line: &str) -> Result<Scope, ParsedErrorTypes> {} 
 
-pub fn parse_alias_part(line: &str) -> Result<AliasType, String> {
-    let tokenized: Vec<&str> = split_preserving_braces(line);
-
-    let alias_id_pos = tokenized.iter().position(|&token| token == "const");
-    let tokenized_len = tokenized.len();
-
-    match alias_id_pos {
-        Some(alias_id_pos) => {
-            let mut next_token_pos = alias_id_pos + 1;
-            if next_token_pos >= tokenized_len { return Err("alias type definition malformed".to_string()); }
-
-            let type_name = tokenized[next_token_pos];
-            let as_type_result = parse_type_definition(type_name);
-
-            if as_type_result.is_err() {
-                return Err(format!("'abstract type' definition is malformed: {}: {line}", as_type_result.unwrap_err() ))
-            }
-
-            // TODO: The "=" might not be separated by whitespace
-            next_token_pos += 1;
-            if next_token_pos >= tokenized_len || tokenized[next_token_pos] != "=" { 
-                { return Err("alias type definition malformed".to_string()); }
-            }
-
-            next_token_pos += 1;
-            if next_token_pos >= tokenized_len { 
-                { return Err("alias type definition malformed".to_string()); }
-            }
-
-            let target_type_name = tokenized[next_token_pos];
-            let target_type_result = parse_type_definition(target_type_name);
-            if target_type_result.is_err() {
-                return Err(format!("'abstract type' definition is malformed: {}: {line}", target_type_result.unwrap_err() ))
-            }
-            let as_type = as_type_result.unwrap();
-            let target_type = target_type_result.unwrap();
-
-            return Ok(AliasType {
-                alias_type: as_type,
-                target_type: target_type
-            });
-        },
-        _ => {
-            return Err("Abstract Type Not Defined".to_string());
-        }
-    }
-}
-
-pub fn parse_abstract_type_part(line: &str) -> Result<AbstractType, String> {
-    let tokenized: Vec<&str> = split_preserving_braces(line);
-
-    let abstract_id_pos = tokenized.iter().position(|&token| token == "abstract");
-    let tokenized_len = tokenized.len();
-
-    let type_id_pos = tokenized.iter().position(|&token| token == "type");
-    match (abstract_id_pos, type_id_pos) {
-        (Some(abs_pos), Some(type_pos)) => {
-            if type_pos < abs_pos { return Err("abstract type definition malformed".to_string()); }
-            
-            let next_token_pos = type_pos + 1;
-            if next_token_pos >= tokenized_len { return Err("abstract type definition malformed".to_string()); }
-
-            let type_name = tokenized[next_token_pos];
-            let as_type_result = parse_type_definition(type_name);
-
-            if as_type_result.is_err() {
-                return Err(format!("'abstract type' definition is malformed: {}: {line}", as_type_result.unwrap_err() ))
-            }
-
-            let as_type = as_type_result.unwrap();
-            return Ok(AbstractType {
-                struct_name: as_type.name,
-                generic_arguments: as_type.generic_args
-            });
-        },
-        _ => {
-            return Err("Abstract Type Not Defined".to_string());
-        }
-    }
-}
 
 /// struct Person
 /// mutable struct Person
 /// mutable struct Person <: AbstractPerson
-pub fn parse_struct_part(line: &str) -> Result<ParsedStruct, String> {
+pub fn parse_struct_part(line: &str) -> Result<ParsedStruct, ParsedErrorTypes> {
     // let tokenized: Vec<&str> = line.split_whitespace().collect();
     let tokenized: Vec<&str> = split_preserving_braces(line);
     let struct_id_pos = tokenized.iter().position(|&token| token == "struct");
@@ -102,7 +24,7 @@ pub fn parse_struct_part(line: &str) -> Result<ParsedStruct, String> {
             let type_def_result = parse_type_definition(&struct_name);
 
             if type_def_result.is_err() {
-                return Err(format!("'struct' definition is malformed: {}: {line}", type_def_result.unwrap_err() ))
+                return Err(ParsedErrorTypes::Malformed(format!("'struct' definition is malformed: {}: {line}", type_def_result.unwrap_err() )))
             }
             
             let type_def = type_def_result.unwrap();
@@ -115,7 +37,7 @@ pub fn parse_struct_part(line: &str) -> Result<ParsedStruct, String> {
                     let abs_name = tokenized[parsed_pos];
                     let as_type_result = parse_type_definition(abs_name);
                     if as_type_result.is_err() {
-                        return Err(format!("'struct definition is malformed: {}: {line}", as_type_result.unwrap_err()))
+                        return Err(ParsedErrorTypes::Malformed(format!("'struct definition is malformed: {}: {line}", as_type_result.unwrap_err())))
                     }
 
                     let as_type = as_type_result.unwrap();
@@ -133,9 +55,9 @@ pub fn parse_struct_part(line: &str) -> Result<ParsedStruct, String> {
              })
         },
         Some(_) => {
-            Err(format!("'struct' definition does not contain a name: {line}"))
+            Err(ParsedErrorTypes::Malformed(format!("'struct' definition does not contain a name: {line}")))
         },
-        None => Err(format!("'struct' identifier not found as part of the line: {line}"))
+        None => Err(ParsedErrorTypes::Malformed(format!("'struct' identifier not found as part of the line: {line}")))
     }
 
 }
@@ -180,11 +102,26 @@ pub fn parse_struct(lines: &Vec<&str>, line_number: &mut u32) -> Result<ParsedSt
     return Ok(structs[0].clone());
 }
 
-pub fn are_structs_equal(lhs: &ParsedStruct, rhs: &ParsedStruct) -> bool {
-    if lhs.is_mutable != rhs.is_mutable { return false; }
-    if lhs.struct_name != rhs.struct_name { return false; }
-    if lhs.fields != rhs.fields { return false; }
-    if lhs.generic_arguments != rhs.generic_arguments { return false; }
-    if lhs.inherits_from != rhs.inherits_from { return false; }
-    return true;
+// pub fn are_structs_equal(lhs: &ParsedStruct, rhs: &ParsedStruct) -> bool {
+//     if lhs.is_mutable != rhs.is_mutable { return false; }
+//     if lhs.struct_name != rhs.struct_name { return false; }
+//     if lhs.fields != rhs.fields { return false; }
+//     if lhs.generic_arguments != rhs.generic_arguments { return false; }
+//     if lhs.inherits_from != rhs.inherits_from { return false; }
+//     return true;
+// }
+
+
+pub mod scope_struct {
+    use crate::parser::parsed_scope::Scope;
+
+    pub fn try_create_struct_scope(line: &str, parent_scope: Scope) -> Option<&str> {
+        return None
+    }
+
+    pub fn process_line(line: &str, /* need the parent Scope::Struct */) {
+
+    }
+
+
 }

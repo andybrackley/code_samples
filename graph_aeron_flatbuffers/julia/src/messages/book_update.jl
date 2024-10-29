@@ -22,3 +22,15 @@ mutable struct BookUpdateFull
     asks::Vector{Level}
 end
 
+abstract type Test{T} end
+
+
+struct TestImpl{T} <: Test{T}
+
+end
+
+struct TestImpl2{Int64} <: Test{Int64}
+
+end
+
+const TestAlias{T} = TestImpl2{T}

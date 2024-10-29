@@ -17,19 +17,6 @@ impl ParsedVariableType {
             generic_args: type_args
         }
     }
-
-    pub fn compare(&self, rhs: &ParsedVariableType) -> bool {
-        if self.name != rhs.name { return false; }
-        if self.generic_args.len() != rhs.generic_args.len() { return false; }
-
-        for(t, rt) in self.generic_args.iter().zip(rhs.generic_args.iter()) {
-            if !t.compare(rt) {
-                return false;
-            }
-        };
-
-        return true;
-    }
 }
 
 
@@ -39,6 +26,17 @@ pub struct ParsedField {
     pub field_type: ParsedVariableType,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EnumValue {
+    pub name: String,
+    pub value: Option<u32>
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct EnumType {
+    pub name: String, 
+    pub values: Vec<EnumValue>
+}
 
 // Rust = type TypeName<T, U> = TypeImpl<T, U>
 // C++  = template <typename T, typename U> using TestAlias = TypeImpl<T, U>
@@ -62,3 +60,4 @@ pub struct ParsedStruct {
     pub inherits_from: Option<AbstractType>,
     pub generic_arguments: Vec<Box<ParsedVariableType>>
 }
+
