@@ -59,3 +59,11 @@ pub struct ParsedStruct {
     pub inherits_from: Option<AbstractType>,
     pub generic_arguments: Vec<Box<ParsedVariableType>>,
 }
+
+#[derive(Debug, Clone)]
+pub enum ParsedType {
+    Enum(EnumType),
+    Alias(AliasType),
+    Abstract(AbstractType),
+    Struct(ParsedStruct),
+}
