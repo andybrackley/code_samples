@@ -76,7 +76,7 @@ fn try_handle_struct(tokens: &Vec<Token>, pos: &mut usize) -> Option<Result<Pars
     if
         !matches!(
             token.map(|t| &t.token_type),
-            Some(TokenType::Mutable) | Some(TokenType::Struct)
+            Some(TokenType::Struct)
         )
     {
         return None;

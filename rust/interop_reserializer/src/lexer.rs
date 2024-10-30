@@ -25,7 +25,7 @@ impl Lexer {
             "}" => Some(TokenType::CloseGeneric),
             "=" => Some(TokenType::Equal),
             "," => Some(TokenType::Comma),
-            "\n" => Some(TokenType::NewLine),
+            "\n" | "\r" => Some(TokenType::NewLine),
             "" => None,
             _ => Some(TokenType::Identifier(buffer.to_string())),
         }
@@ -35,15 +35,18 @@ impl Lexer {
         buffer: &mut String,
         tokens: &mut Vec<Token>,
         line_number: u32,
-        char_pos: u32
+        char_pos: u32,
+        token_pos: &mut u32
     ) -> Option<TokenType> {
         match Lexer::check_buffer(&buffer) {
             Some(token) => {
+                *token_pos += 1;
                 buffer.clear();
                 let as_token = Token {
                     token_type: token.clone(),
                     line_number: line_number,
                     char_pos: char_pos,
+                    token_pos: *token_pos,
                 };
 
                 tokens.push(as_token);
@@ -57,26 +60,27 @@ impl Lexer {
         return ch == ' ';
     }
 
+    fn is_new_line(ch: char) -> bool {
+        return ch == '\n' || ch == '\r';
+    }
+
     pub fn parse(lines: &str) -> Parsed {
         let mut buffer = "".to_string();
         let mut tokens = Vec::new();
         let mut line_number = if lines.is_empty() { 0 } else { 1 };
         let mut char_pos = 0;
+        let mut token_pos = 0;
 
         for ch in lines.chars() {
             char_pos += 1;
             match ch {
                 ch if Lexer::is_separator(ch) => {
-                    // if ch == '\n' {
-                    //     line_number += 1;
-                    //     char_pos = 0;
-                    // }
-
                     let result = Lexer::process_buffer(
                         &mut buffer,
                         &mut tokens,
                         line_number,
-                        char_pos
+                        char_pos,
+                        &mut token_pos
                     );
 
                     match result {
@@ -86,15 +90,29 @@ impl Lexer {
                         }
                     }
                 }
-                '=' | '{' | '}' | ',' | '\n' => {
-                    if ch == '\n' {
+                // TODO:  Pattern match should cater for both \n and \r rather
+                //        by using is_new_line in the match
+                '=' | '{' | '}' | ',' | '\n' | '\r' => {
+                    if Lexer::is_new_line(ch) {
                         line_number += 1;
                         char_pos = 0;
                     }
 
-                    Lexer::process_buffer(&mut buffer, &mut tokens, line_number, char_pos);
+                    Lexer::process_buffer(
+                        &mut buffer,
+                        &mut tokens,
+                        line_number,
+                        char_pos,
+                        &mut token_pos
+                    );
                     buffer.push(ch);
-                    Lexer::process_buffer(&mut buffer, &mut tokens, line_number, char_pos);
+                    Lexer::process_buffer(
+                        &mut buffer,
+                        &mut tokens,
+                        line_number,
+                        char_pos,
+                        &mut token_pos
+                    );
                 }
                 ':' | '<' => {
                     // This could be a field separator which consists of two ::
@@ -103,12 +121,23 @@ impl Lexer {
                     match buffer.chars().last() {
                         Some(':') | Some('<') => {
                             buffer.push(ch);
-                            Lexer::process_buffer(&mut buffer, &mut tokens, line_number, char_pos);
+                            Lexer::process_buffer(
+                                &mut buffer,
+                                &mut tokens,
+                                line_number,
+                                char_pos,
+                                &mut token_pos
+                            );
                         }
                         _ => {
                             let result = Lexer::check_buffer(&buffer);
                             result.map(|t|
-                                tokens.push(Token { token_type: t, line_number, char_pos })
+                                tokens.push(Token {
+                                    token_type: t,
+                                    line_number,
+                                    char_pos,
+                                    token_pos,
+                                })
                             );
 
                             buffer.clear();
@@ -122,13 +151,14 @@ impl Lexer {
             }
         }
 
-        Lexer::process_buffer(&mut buffer, &mut tokens, line_number, char_pos);
+        Lexer::process_buffer(&mut buffer, &mut tokens, line_number, char_pos, &mut token_pos);
 
         line_number += 1;
         tokens.push(Token {
             token_type: TokenType::NewLine,
             line_number: line_number,
             char_pos: 0,
+            token_pos,
         });
 
         Parsed {

@@ -6,7 +6,7 @@ end
 
 mutable struct BookUpdate
     time::Int64
-    timestamp_exch::Union{Int64,Nothing}
+    timestamp_exch::Optional{Int64}
     instId::Int64
     updateType::Int64
 

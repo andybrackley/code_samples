@@ -32,11 +32,11 @@ end"#;
         let rust =
             r#"
 pub struct Level {
-    pub asInt32: i32,
-    pub asInt64: i64,
-    pub asFloat32: f32,
-    pub asFloat64: f64,
-    pub asString: String,
+    pub as_int32: i32,
+    pub as_int64: i64,
+    pub as_float32: f32,
+    pub as_float64: f64,
+    pub as_string: String,
 }"#;
         run_test(julia, rust);
     }

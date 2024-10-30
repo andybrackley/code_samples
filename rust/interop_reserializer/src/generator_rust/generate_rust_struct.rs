@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::parser_types::{ ParsedField, ParsedStruct, ParsedVariableType };
+use crate::{
+    parser_types::{ ParsedField, ParsedStruct, ParsedVariableType },
+    utils::string_utils::camel_to_snake,
+};
 
 type ErrorT = String;
 type ReturnT = Result<Vec<String>, ErrorT>;
@@ -22,7 +25,7 @@ fn get_standard_mapping(t: &str) -> Result<String, String> {
         .get(t)
         .cloned()
         .map(|s| s.to_string())
-        .ok_or(format!("Type Mapping not found for: {t}"))
+        .ok_or(format!("Type Mapping not found for: '{t}'"))
 }
 
 // struct_args contains the generic types for the struct.
@@ -66,7 +69,7 @@ fn get_generic_arg_str(
 }
 
 fn get_field_str(field: &ParsedField, struct_args: &Vec<String>) -> Result<String, String> {
-    let field_name = field.field_name.clone();
+    let field_name = camel_to_snake(&field.field_name);
     let field_type = get_generic_arg_str(&field.field_type, struct_args);
 
     let full = field_type.map(|ft| format!("pub {}: {}", field_name, ft));
