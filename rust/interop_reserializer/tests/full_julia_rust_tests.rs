@@ -10,7 +10,7 @@ pub mod full_julia_to_rust_tests {
     };
 
     const INPUT_DIR: &str = ".\\julia_samples\\";
-    const OUTPUT_DIR: &str = ".\\generated\\";
+    const OUTPUT_DIR: &str = ".\\generated\\src\\";
 
     fn run(julia_file_name: &str) -> io::Result<()> {
         let julia_file_path = format!("{}{}", INPUT_DIR, julia_file_name);

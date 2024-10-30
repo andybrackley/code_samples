@@ -123,7 +123,14 @@ pub fn generate_rust_struct(parsed: &ParsedStruct) -> ReturnT {
         }
     }
 
+    let use_common_line =
+        "use crate::{ common_serialize::{ serialize_option, serialize_scalar, serialize_vec }, types::BufferT };".to_string();
+
     let mut lines = Vec::new();
+    lines.push(use_common_line);
+    lines.push("\n".to_string());
+
+    lines.push("#[derive(Debug)]".to_string());
     lines.push(struct_def);
     lines.extend(field_lines);
 
