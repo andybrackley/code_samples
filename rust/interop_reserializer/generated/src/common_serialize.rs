@@ -30,14 +30,16 @@ pub fn serialize_usize(scalar: &usize, buffer: &mut BufferT, pos: usize) -> usiz
     serialize::<usize>(&scalar.to_ne_bytes(), buffer, pos)
 }
 
-pub fn serialize_scalar<T>(scalar: &T, buffer: &mut BufferT, pos: usize) -> usize {
-    let size = size_of::<T>();
-    return pos + size;
+unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
+    ::core::slice::from_raw_parts(p as *const T as *const u8, ::core::mem::size_of::<T>())
 }
 
-// unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
-//     ::core::slice::from_raw_parts(p as *const T as *const u8, ::core::mem::size_of::<T>())
-// }
+pub fn serialize_scalar<T>(scalar: &T, buffer: &mut BufferT, pos: usize) -> usize {
+    unsafe {
+        let bytes = any_as_u8_slice(scalar);
+        return serialize::<T>(bytes, buffer, pos);
+    }
+}
 
 // pub fn serialize_scalar<T>(scalar: &T, buffer: &mut BufferT, pos: usize) -> usize {
 //     let size = size_of::<T>();

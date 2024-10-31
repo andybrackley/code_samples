@@ -16,7 +16,7 @@ pub mod generated_serializer_tests {
     }
 
     #[test]
-    pub fn t() {
+    pub fn bookupdate_serialization_test() {
         let filename = "BookUpdate_rust.bin";
         let filepath = format!("{}{}", OUTPUT_DIR, filename);
 

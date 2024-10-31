@@ -1,6 +1,6 @@
 use crate::{
-    common_deserialize::deserialize_scalar,
-    common_serialize::{ serialize_option, serialize_scalar, serialize_i64, serialize_vec },
+    common_deserialize::{ deserialize_option, deserialize_scalar, deserialize_vec },
+    common_serialize::{ serialize_i64, serialize_option, serialize_scalar, serialize_vec },
     types::BufferT,
 };
 
@@ -15,10 +15,10 @@ pub struct BookUpdate {
 }
 impl BookUpdate {
     pub fn serialize_into(&self, buffer: &mut BufferT, pos: usize) -> usize {
-        let mut pos = serialize_i64(&self.time, buffer, pos);
+        let mut pos = serialize_scalar(&self.time, buffer, pos);
         pos = serialize_option(&self.timestamp_exch, buffer, pos);
-        pos = serialize_i64(&self.inst_id, buffer, pos);
-        pos = serialize_i64(&self.update_type, buffer, pos);
+        pos = serialize_scalar(&self.inst_id, buffer, pos);
+        pos = serialize_scalar(&self.update_type, buffer, pos);
         pos = serialize_vec(&self.bids, buffer, pos);
         pos = serialize_vec(&self.asks, buffer, pos);
         return pos;
@@ -27,6 +27,18 @@ impl BookUpdate {
     pub fn deserialize_from(buffer: &BufferT, pos: usize) -> Result<(BookUpdate, usize), String> {
         let mut pos = pos;
         //  = deserialize_scalar(scalar, buffer, pos);
-        return Err("".to_string());
+
+        // TODO:  Can I do this without the derefence????
+
+        let bu = BookUpdate {
+            time: *deserialize_scalar::<i64>(&buffer, &mut pos),
+            timestamp_exch: deserialize_option(&buffer, &mut pos),
+            inst_id: *deserialize_scalar::<i64>(&buffer, &mut pos),
+            update_type: *deserialize_scalar::<i64>(&buffer, &mut pos),
+            bids: deserialize_vec(&buffer, &mut pos),
+            asks: deserialize_vec(&buffer, &mut pos),
+        };
+
+        return Ok((bu, pos));
     }
 }
