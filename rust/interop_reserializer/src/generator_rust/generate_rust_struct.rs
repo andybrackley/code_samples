@@ -130,7 +130,7 @@ pub fn generate_rust_struct(parsed: &ParsedStruct) -> ReturnT {
     lines.push(use_common_line);
     lines.push("\n".to_string());
 
-    lines.push("#[derive(Debug)]".to_string());
+    lines.push("#[derive(Debug, Eq, PartialEq)]".to_string());
     lines.push(struct_def);
     lines.extend(field_lines);
 

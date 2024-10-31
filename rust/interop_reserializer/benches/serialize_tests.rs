@@ -22,22 +22,22 @@ pub mod generated_serializer_tests {
 
         let to_serialize = BookUpdate {
             time: 32,
-            timestamp_exch: None,
+            timestamp_exch: Some(999),
             inst_id: 64,
             update_type: 128,
-            bids: Vec::new(),
-            asks: Vec::new(),
+            bids: vec![1, 2, 3, 4, 5],
+            asks: vec![9, 8, 7, 6, 5],
         };
 
         let mut buffer: Vec<u8> = Vec::new();
-        buffer.reserve(1024);
+        buffer.reserve(200);
 
         let new_pos = to_serialize.serialize_into(&mut buffer, 0);
         println!("Written: '{new_pos}' bytes");
         write_buffer_to_file(&filepath, &buffer).unwrap();
 
         let from_buffer = BookUpdate::deserialize_from(&buffer, 0);
-        match from_buffer {
+        match &from_buffer {
             Ok((obj, pos)) => {
                 println!("Read: '{}' bytes. Obj=[{:#?}]", pos, obj);
             }
@@ -45,5 +45,7 @@ pub mod generated_serializer_tests {
                 println!("Error: {}", e);
             }
         }
+
+        assert_eq!(to_serialize, from_buffer.unwrap().0);
     }
 }

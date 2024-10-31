@@ -1,10 +1,10 @@
 use crate::{
     common_deserialize::{ deserialize_option, deserialize_scalar, deserialize_vec },
-    common_serialize::{ serialize_i64, serialize_option, serialize_scalar, serialize_vec },
+    common_serialize::{ serialize_option, serialize_scalar, serialize_vec },
     types::BufferT,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct BookUpdate {
     pub time: i64,
     pub timestamp_exch: Option<i64>,
@@ -26,17 +26,22 @@ impl BookUpdate {
 
     pub fn deserialize_from(buffer: &BufferT, pos: usize) -> Result<(BookUpdate, usize), String> {
         let mut pos = pos;
-        //  = deserialize_scalar(scalar, buffer, pos);
 
         // TODO:  Can I do this without the derefence????
-
         let bu = BookUpdate {
             time: *deserialize_scalar::<i64>(&buffer, &mut pos),
-            timestamp_exch: deserialize_option(&buffer, &mut pos),
+            timestamp_exch: deserialize_option(&buffer, &mut pos).map(|o| *o),
             inst_id: *deserialize_scalar::<i64>(&buffer, &mut pos),
             update_type: *deserialize_scalar::<i64>(&buffer, &mut pos),
-            bids: deserialize_vec(&buffer, &mut pos),
-            asks: deserialize_vec(&buffer, &mut pos),
+            bids: deserialize_vec::<i64>(&buffer, &mut pos)
+                .iter()
+                .map(|&v| *v)
+                .collect(),
+
+            asks: deserialize_vec::<i64>(&buffer, &mut pos)
+                .iter()
+                .map(|&v| *v)
+                .collect(),
         };
 
         return Ok((bu, pos));
