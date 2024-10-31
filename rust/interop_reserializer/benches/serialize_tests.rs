@@ -29,8 +29,7 @@ pub mod generated_serializer_tests {
             asks: vec![9, 8, 7, 6, 5],
         };
 
-        let mut buffer: Vec<u8> = Vec::new();
-        buffer.reserve(200);
+        let mut buffer: Vec<u8> = Vec::with_capacity(200);
 
         let new_pos = to_serialize.serialize_into(&mut buffer, 0);
         println!("Written: '{new_pos}' bytes");

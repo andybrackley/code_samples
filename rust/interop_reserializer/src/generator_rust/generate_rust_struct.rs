@@ -105,11 +105,6 @@ pub fn generate_rust_struct(parsed: &ParsedStruct) -> ReturnT {
 
     let struct_def = format!("pub struct {}{} {{", parsed.struct_name, gen_args_str);
 
-    // let field_lines: Vec<String> = parsed.fields
-    //     .iter()
-    //     .map(|f| format!("{spacing}{}", get_field_str(&f, &gen_args)))
-    //     .collect();
-
     let mut field_lines = Vec::new();
     for field in &parsed.fields {
         let fld = get_field_str(&field, &gen_args);

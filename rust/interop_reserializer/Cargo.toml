@@ -5,3 +5,17 @@ edition = "2021"
 
 [dependencies]
 generated_mod = { path = "./generated/" }
+
+[dev-dependencies]
+criterion = "0.5.1"
+bytemuck = "1.19.0"
+bincode = "1.3.3"
+serde = "1.0.214"
+
+[[bench]]
+name = "serialization_benches"
+harness = false
+
+[[bench]]
+name = "deserialization_benches"
+harness = false

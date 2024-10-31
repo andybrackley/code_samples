@@ -7,7 +7,7 @@ pub mod generator_rust_struct_tests {
     };
 
     fn compare(expected: &str, actual: &str) {
-        assert!(expected.trim() == actual.trim(), "e: {}, a: {}", expected, actual);
+        assert!(expected.trim() == actual.trim(), "e:\n[\n{}\n]\na:\n[\n{}\n]", expected, actual);
     }
 
     fn run_test(julia_def: &str, rust_str: &str) {
@@ -24,13 +24,17 @@ pub mod generator_rust_struct_tests {
 mutable struct Level
     asInt32:: Int32
     asInt64:: Int64 
-    asFloat32:: Float32
+    asFloat32:: Float32 
     asFloat64:: Float64
     asString:: String
 end"#;
 
         let rust =
             r#"
+            use crate::{ common_serialize::{ serialize_option, serialize_scalar, serialize_vec }, types::BufferT };
+
+
+#[derive(Debug, Eq, PartialEq)]
 pub struct Level {
     pub as_int32: i32,
     pub as_int64: i64,
@@ -53,6 +57,10 @@ end"#;
 
         let rust =
             r#"
+use crate::{ common_serialize::{ serialize_option, serialize_scalar, serialize_vec }, types::BufferT };
+
+
+#[derive(Debug, Eq, PartialEq)]
 pub struct BookUpdate<A, B, C> {
     pub bids: Vec<A>,
     pub mids: Vec<B>,
@@ -73,6 +81,10 @@ end"#;
 
         let rust =
             r#"
+use crate::{ common_serialize::{ serialize_option, serialize_scalar, serialize_vec }, types::BufferT };
+
+
+#[derive(Debug, Eq, PartialEq)]
 pub struct BookUpdate<A, B> {
     pub bids: Vec<A>,
     pub asks: Vec<B>,
