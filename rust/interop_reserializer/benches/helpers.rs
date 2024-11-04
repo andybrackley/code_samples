@@ -34,5 +34,7 @@ pub fn get_book_update_serializable_test_obj() -> BookUpdateSerializable {
 }
 
 pub fn get_default_buffer() -> Vec<u8> {
-    Vec::with_capacity(200)
+    let v = Vec::with_capacity(200);
+    let _ = unsafe { v.align_to::<u8>() };
+    v
 }

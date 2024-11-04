@@ -4,6 +4,8 @@ pub mod generated_serializer_tests {
 
     use std::fs::File;
     use std::io::{ self, Write };
+    use generated_mod::common_deserialize::{ deserialize_scalar, deserialize_vec };
+    use generated_mod::common_serialize::{ serialize_scalar, serialize_vec };
     use generated_mod::common_types::RawArray;
     use generated_mod::types_tests::BookUpdate;
 
@@ -54,5 +56,71 @@ pub mod generated_serializer_tests {
         }
 
         assert_eq!(to_serialize, from_buffer.unwrap().0);
+    }
+
+    fn get_book_update_test_obj() -> BookUpdate {
+        BookUpdate {
+            time: 123,
+            timestamp_exch: Some(456),
+            inst_id: 789,
+            update_type: 101112,
+            bids: vec![1, 2, 3, 4, 5],
+            asks: vec![9, 8, 7, 6, 5],
+        }
+    }
+
+    #[test]
+    pub fn test_bench() {
+        let mut buf: Vec<u8> = Vec::with_capacity(200);
+        let obj = get_book_update_test_obj();
+        let pos = obj.serialize_into(&mut buf, 0);
+        unsafe {
+            buf.set_len(pos);
+        }
+
+        let mut pos = 0;
+        let _ = BookUpdate::deserialize_from(&buf, pos).unwrap();
+
+        println!("Test Completed");
+    }
+
+    #[test]
+    pub fn test_alignments() {
+        #[derive(Debug, PartialEq, Eq)]
+        struct S {
+            a: i32,
+            b: i32,
+            c: i64,
+            d: i128,
+            v: Vec<i32>,
+        }
+
+        let s1 = S {
+            a: 1,
+            b: 2,
+            c: 3,
+            d: 4,
+            v: vec![9, 8, 7, 6, 5],
+        };
+
+        let mut buf: Vec<u8> = Vec::with_capacity(200);
+        let _ = unsafe { buf.align_to::<i8>() };
+
+        let mut pos = serialize_scalar(&s1.a, &mut buf, 0);
+        pos = serialize_scalar(&s1.b, &mut buf, pos);
+        pos = serialize_scalar(&s1.c, &mut buf, pos);
+        pos = serialize_scalar(&s1.d, &mut buf, pos);
+        pos = serialize_vec(&s1.v, &mut buf, pos);
+
+        let mut offset = 0;
+        let s2 = S {
+            a: deserialize_scalar::<i32>(&buf, &mut offset),
+            b: deserialize_scalar::<i32>(&buf, &mut offset),
+            c: deserialize_scalar::<i64>(&buf, &mut offset),
+            d: deserialize_scalar::<i128>(&buf, &mut offset),
+            v: deserialize_vec(&buf, &mut offset).to_vec(),
+        };
+
+        assert_eq!(s1, s2);
     }
 }

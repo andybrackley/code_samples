@@ -40,6 +40,7 @@ pub mod full_julia_to_rust_tests {
                                 s.struct_name,
                                 e
                             );
+                            assert!(false, "{}", e);
                         }
                     }
                 }

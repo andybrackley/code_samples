@@ -76,9 +76,9 @@ fn benchmark_deserialize_bytemuck(c: &mut Criterion) {
 criterion_group!(
     benches,
 
-    benchmark_deserialize,
-    benchmark_deserialize_bincode,
-    benchmark_deserialize_bincode_into
+    benchmark_deserialize
+    // benchmark_deserialize_bincode,
+    // benchmark_deserialize_bincode_into
 
     // benchmark_deserialize_serde,
     // benchmark_serialize_bytemuck

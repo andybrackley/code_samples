@@ -21,12 +21,15 @@ impl BookUpdate {
 
         // TODO:  Can I do this without the derefence????
         let bu = BookUpdate {
-            time: *deserialize_scalar::<i64>(&buffer, &mut pos),
-            timestamp_exch: deserialize_option::<i64>(&buffer, &mut pos).map(|o| o),
-            inst_id: *deserialize_scalar::<i64>(&buffer, &mut pos),
-            update_type: *deserialize_scalar::<i64>(&buffer, &mut pos),
-            bids: deserialize_vec::<i64>(&buffer, &mut pos).to_vec(),
+            time: deserialize_scalar::<i8>(&buffer, &mut pos),
+            timestamp_exch: deserialize_option::<i32>(&buffer, &mut pos).map(|o| o),
+            inst_id: deserialize_scalar::<i64>(&buffer, &mut pos),
+            update_type: deserialize_scalar::<i128>(&buffer, &mut pos),
+            bids: deserialize_vec::<i32>(&buffer, &mut pos).to_vec(),
             asks: deserialize_vec::<i64>(&buffer, &mut pos).to_vec(),
+
+            // bids: Vec::new(),
+            // asks: Vec::new(),
         };
 
         return Ok((bu, pos));

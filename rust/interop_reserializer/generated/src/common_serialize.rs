@@ -1,3 +1,5 @@
+use std::ptr;
+
 use bytemuck::{ bytes_of, NoUninit };
 
 // This seems to cause issue if I move a type to another module.
@@ -7,25 +9,24 @@ use bytemuck::{ bytes_of, NoUninit };
 
 pub fn serialize_scalar<T: NoUninit>(v: &T, buffer: &mut [u8], pos: usize) -> usize {
     let ptr = unsafe { buffer.as_mut_ptr().add(pos) };
-    // let bytes = unsafe { any_as_u8_slice(&v) };
-    // let bytes = v.to_bytes();
-    let bytes = bytes_of(v);
+    let bytes = bytes_of(v).as_ptr();
     let type_size = ::core::mem::size_of::<T>();
 
     unsafe {
-        std::ptr::copy_nonoverlapping(bytes.as_ptr(), ptr, type_size);
+        std::ptr::copy_nonoverlapping(bytes, ptr, type_size);
     }
+
     return pos + type_size;
 }
 
 pub fn serialize_option<T: NoUninit>(v: &Option<T>, buffer: &mut [u8], pos: usize) -> usize {
-    let is_some: i64 = if v.is_some() { 1 } else { 0 };
+    let is_some: i8 = if v.is_some() { 1 } else { 0 };
     let mut pos = serialize_scalar(&is_some, buffer, pos);
     pos = serialize_scalar(&v.unwrap(), buffer, pos);
     return pos;
 }
 
-pub fn serialize_vec(vec: &Vec<i64>, buffer: &mut [u8], pos: usize) -> usize {
+pub fn serialize_vec<T: NoUninit>(vec: &Vec<T>, buffer: &mut [u8], pos: usize) -> usize {
     let vec_len = vec.len();
     let mut new_pos = serialize_scalar::<usize>(&vec_len, buffer, pos);
 
