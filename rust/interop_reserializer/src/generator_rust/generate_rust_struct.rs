@@ -230,7 +230,7 @@ pub fn generate_rust_deserialize_lines(parsed: &ParsedStruct) -> ReturnT {
         format!("    pub fn deserialize_from(buffer: &BufferT, pos: usize) -> {} {{", ret_typ);
 
     let top = "        let mut pos: usize = pos;";
-    let create = format!("        let obj = {}{{", name);
+    let create = format!("        let obj = {} {{", name);
 
     let field_lines = parsed.fields
         .iter()

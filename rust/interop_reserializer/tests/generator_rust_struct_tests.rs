@@ -31,7 +31,11 @@ end"#;
 
         let rust =
             r#"
-            use crate::{ common_serialize::{ serialize_option, serialize_scalar, serialize_vec }, types::BufferT };
+use crate::{ 
+    common_deserialize::{ deserialize_option, deserialize_scalar, deserialize_vec },
+    common_serialize::{ serialize_option, serialize_scalar, serialize_vec },
+    types::BufferT,
+};
 
 
 #[derive(Debug, Eq, PartialEq)]
@@ -57,7 +61,11 @@ end"#;
 
         let rust =
             r#"
-use crate::{ common_serialize::{ serialize_option, serialize_scalar, serialize_vec }, types::BufferT };
+use crate::{ 
+    common_deserialize::{ deserialize_option, deserialize_scalar, deserialize_vec },
+    common_serialize::{ serialize_option, serialize_scalar, serialize_vec },
+    types::BufferT,
+};
 
 
 #[derive(Debug, Eq, PartialEq)]
@@ -81,7 +89,11 @@ end"#;
 
         let rust =
             r#"
-use crate::{ common_serialize::{ serialize_option, serialize_scalar, serialize_vec }, types::BufferT };
+use crate::{ 
+    common_deserialize::{ deserialize_option, deserialize_scalar, deserialize_vec },
+    common_serialize::{ serialize_option, serialize_scalar, serialize_vec },
+    types::BufferT,
+};
 
 
 #[derive(Debug, Eq, PartialEq)]
