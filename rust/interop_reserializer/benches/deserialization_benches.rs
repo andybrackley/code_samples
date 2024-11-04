@@ -1,7 +1,7 @@
 use criterion::{ black_box, criterion_group, criterion_main, Criterion };
 
 mod helpers;
-use generated_mod::types_tests::BookUpdate;
+use generated_mod::{ types_tests::BookUpdate };
 use helpers::{
     get_book_update_serializable_test_obj,
     get_book_update_test_obj,
@@ -75,10 +75,12 @@ fn benchmark_deserialize_bytemuck(c: &mut Criterion) {
 
 criterion_group!(
     benches,
+
     benchmark_deserialize,
-    // benchmark_deserialize_serde,
     benchmark_deserialize_bincode,
     benchmark_deserialize_bincode_into
+
+    // benchmark_deserialize_serde,
     // benchmark_serialize_bytemuck
 );
 
