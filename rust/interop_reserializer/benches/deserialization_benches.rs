@@ -13,6 +13,9 @@ fn benchmark_deserialize(c: &mut Criterion) {
     let mut buf: Vec<u8> = get_default_buffer();
     let obj = get_book_update_test_obj();
     let pos = obj.serialize_into(&mut buf, 0);
+    unsafe {
+        buf.set_len(pos);
+    }
 
     c.bench_function("DeSer::Ours", |b| {
         b.iter(|| {
@@ -21,16 +24,17 @@ fn benchmark_deserialize(c: &mut Criterion) {
     });
 }
 
-fn benchmark_deserialize_serde(c: &mut Criterion) {
-    let mut buf: Vec<u8> = get_default_buffer();
-    let obj = get_book_update_test_obj();
+// fn benchmark_deserialize_serde(c: &mut Criterion) {
+//     let mut buf: Vec<u8> = get_default_buffer();
+//     let obj = get_book_update_test_obj();
+//     let ser = obj.serialize_into(&mut buf, 0);
 
-    c.bench_function("DeSer::Serde", |b| {
-        b.iter(|| {
-            black_box(obj.serialize_into(&mut buf, 0));
-        });
-    });
-}
+//     c.bench_function("DeSer::Serde", |b| {
+//         b.iter(|| {
+//             black_box();
+//         });
+//     });
+// }
 
 fn benchmark_deserialize_bincode(c: &mut Criterion) {
     let obj = get_book_update_serializable_test_obj();
@@ -72,7 +76,7 @@ fn benchmark_deserialize_bytemuck(c: &mut Criterion) {
 criterion_group!(
     benches,
     benchmark_deserialize,
-    // benchmark_serialize_serde,
+    // benchmark_deserialize_serde,
     benchmark_deserialize_bincode,
     benchmark_deserialize_bincode_into
     // benchmark_serialize_bytemuck

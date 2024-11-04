@@ -1,66 +1,36 @@
-use crate::types::BufferT;
+use bytemuck::{ bytes_of, NoUninit };
 
-pub trait Serializer {
-    fn serialize(&self, buffer: &mut BufferT, pos: usize) -> usize;
-}
+// This seems to cause issue if I move a type to another module.
+// unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
+//     ::core::slice::from_raw_parts(p as *const T as *const u8, ::core::mem::size_of::<T>())
+// }
 
-impl Serializer for i64 {
-    fn serialize(&self, buffer: &mut BufferT, pos: usize) -> usize {
-        return serialize_scalar(self, buffer, pos);
-    }
-}
-
-unsafe fn write_bytes(bytes: &[u8], size: usize, buffer: &mut BufferT, pos: usize) {
-    let ptr = buffer.as_mut_ptr().add(pos);
-    std::ptr::copy_nonoverlapping(bytes.as_ptr(), ptr, size);
-}
-
-// TODO:  Hoping I can do this with the template args instead...
-fn serialize<T>(bytes: &[u8], buffer: &mut BufferT, pos: usize) -> usize {
-    let size = size_of::<T>();
-    let new_pos = pos + size;
+pub fn serialize_scalar<T: NoUninit>(v: &T, buffer: &mut [u8], pos: usize) -> usize {
+    let ptr = unsafe { buffer.as_mut_ptr().add(pos) };
+    // let bytes = unsafe { any_as_u8_slice(&v) };
+    // let bytes = v.to_bytes();
+    let bytes = bytes_of(v);
+    let type_size = ::core::mem::size_of::<T>();
 
     unsafe {
-        write_bytes(&bytes, size, buffer, pos);
-        buffer.set_len(new_pos);
+        std::ptr::copy_nonoverlapping(bytes.as_ptr(), ptr, type_size);
     }
-
-    return new_pos;
+    return pos + type_size;
 }
 
-unsafe fn any_as_u8_slice<T: Sized>(p: &T) -> &[u8] {
-    ::core::slice::from_raw_parts(p as *const T as *const u8, ::core::mem::size_of::<T>())
-}
-
-pub fn serialize_scalar<T>(scalar: &T, buffer: &mut BufferT, pos: usize) -> usize {
-    unsafe {
-        let bytes = any_as_u8_slice(scalar);
-        return serialize::<T>(bytes, buffer, pos);
-    }
-}
-
-pub fn serialize_option<T: Serializer>(v: &Option<T>, buffer: &mut BufferT, pos: usize) -> usize {
-    let mut pos = pos;
-
-    if let Some(v) = v {
-        pos = serialize_scalar(&1, buffer, pos);
-        pos = v.serialize(buffer, pos);
-    } else {
-        pos = serialize_scalar(&0, buffer, pos);
-    }
-
+pub fn serialize_option<T: NoUninit>(v: &Option<T>, buffer: &mut [u8], pos: usize) -> usize {
+    let is_some: i64 = if v.is_some() { 1 } else { 0 };
+    let mut pos = serialize_scalar(&is_some, buffer, pos);
+    pos = serialize_scalar(&v.unwrap(), buffer, pos);
     return pos;
 }
 
-pub fn serialize_vec<T: Serializer>(vec: &Vec<T>, buffer: &mut BufferT, pos: usize) -> usize {
-    let len = vec.len();
-    let mut new_pos = serialize_scalar(&len, buffer, pos);
+pub fn serialize_vec(vec: &Vec<i64>, buffer: &mut [u8], pos: usize) -> usize {
+    let vec_len = vec.len();
+    let mut new_pos = serialize_scalar::<usize>(&vec_len, buffer, pos);
 
-    // TODO: Can I just create flatbuffer here and simply flatten
-    //       all items into memory
-    for item in vec {
-        new_pos = item.serialize(buffer, new_pos);
+    for i in 0..vec.len() {
+        new_pos = serialize_scalar(&vec[i], buffer, new_pos);
     }
-
     return new_pos;
 }
