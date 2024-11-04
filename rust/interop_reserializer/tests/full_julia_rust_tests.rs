@@ -3,7 +3,7 @@ pub mod full_julia_to_rust_tests {
     use std::{ fs::File, io::{ self, BufReader, Read, Write } };
 
     use interop_reserializer::{
-        generator_rust::generate_rust_struct::generate_rust_struct,
+        generator_rust::generate_rust_struct::{ generate_rust_struct, generate_rust_struct_full },
         lexer::Lexer,
         parser::parser::Parser,
         parser_types::ParsedType,
@@ -29,7 +29,7 @@ pub mod full_julia_to_rust_tests {
         for s in un.tokens {
             match s {
                 ParsedType::Struct(s) => {
-                    let r = generate_rust_struct(&s);
+                    let r = generate_rust_struct_full(&s);
                     match r {
                         Ok(l) => {
                             to_output.extend(l);

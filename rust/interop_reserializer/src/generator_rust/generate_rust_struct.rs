@@ -95,9 +95,7 @@ fn get_struct_gen_args(gen_args: &Vec<Box<ParsedVariableType>>) -> Vec<String> {
     args
 }
 
-pub fn generate_rust_struct(parsed: &ParsedStruct) -> ReturnT {
-    let spacing = "    ";
-
+fn get_struct_def(parsed: &ParsedStruct) -> String {
     let gen_args = get_struct_gen_args(&parsed.generic_arguments);
     let gen_args_str = if gen_args.is_empty() {
         "".to_string()
@@ -106,7 +104,15 @@ pub fn generate_rust_struct(parsed: &ParsedStruct) -> ReturnT {
         format!("<{}>", csv)
     };
 
-    let struct_def = format!("pub struct {}{} {{", parsed.struct_name, gen_args_str);
+    return format!("{}{}", parsed.struct_name, gen_args_str);
+}
+
+pub fn generate_rust_struct(parsed: &ParsedStruct) -> ReturnT {
+    let gen_args = get_struct_gen_args(&parsed.generic_arguments);
+
+    let spacing = "    ";
+    let name = get_struct_def(parsed);
+    let struct_def = format!("pub struct {} {{", name);
 
     let mut field_lines = Vec::new();
     for field in &parsed.fields {
@@ -122,7 +128,12 @@ pub fn generate_rust_struct(parsed: &ParsedStruct) -> ReturnT {
     }
 
     let use_common_line =
-        "use crate::{ common_serialize::{ serialize_option, serialize_scalar, serialize_vec }, types::BufferT };".to_string();
+        r#"
+use crate::{ 
+    common_deserialize::{ deserialize_option, deserialize_scalar, deserialize_vec },
+    common_serialize::{ serialize_option, serialize_scalar, serialize_vec },
+    types::BufferT,
+};"#.to_string();
 
     let mut lines = Vec::new();
     lines.push(use_common_line);
@@ -135,4 +146,143 @@ pub fn generate_rust_struct(parsed: &ParsedStruct) -> ReturnT {
     lines.push("}".to_string());
     lines.push("\n".to_string());
     return Ok(lines);
+}
+
+fn generate_serialize_line(field: &ParsedField) -> String {
+    let s = match field.field_type.get_type() {
+        crate::parser_types::AvailTypes::Scalar => "serialize_scalar",
+        crate::parser_types::AvailTypes::Option => "serialize_option",
+        crate::parser_types::AvailTypes::Union => todo!(),
+        crate::parser_types::AvailTypes::Vec => "serialize_vec",
+    };
+
+    let line = format!(
+        "        pos = {}(&self.{}, buffer, pos);",
+        s,
+        camel_to_snake(&field.field_name)
+    );
+    return line;
+}
+
+pub fn generate_rust_serialize_lines(parsed: &ParsedStruct) -> ReturnT {
+    let fn_def = "    pub fn serialize_into(&self, buffer: &mut BufferT, pos: usize) -> usize {";
+    let top = "        let mut pos: usize = pos;";
+    let field_lines = parsed.fields
+        .iter()
+        .map(|f| generate_serialize_line(f))
+        .collect::<Vec<String>>();
+
+    let ret = "        return pos;";
+    let fn_end = "    }";
+
+    let mut lines = Vec::new();
+    lines.push(fn_def.to_string());
+    lines.push(top.to_string());
+    lines.extend(field_lines);
+    lines.push(ret.to_string());
+    lines.push(fn_end.to_string());
+    return Ok(lines);
+}
+
+fn generate_deserialize_line(parsed: &ParsedStruct, field: &ParsedField) -> String {
+    let gen_args = get_struct_gen_args(&parsed.generic_arguments);
+
+    let s = match field.field_type.get_type() {
+        crate::parser_types::AvailTypes::Scalar =>
+            format!(
+                "deserialize_scalar::<{}>",
+                get_mapped_type(&field.field_type.name, &gen_args).unwrap()
+            ),
+        crate::parser_types::AvailTypes::Option =>
+            format!(
+                "deserialize_option::<{}>",
+                get_generic_arg_str(field.field_type.generic_args[0].as_ref(), &gen_args).unwrap()
+            ),
+        crate::parser_types::AvailTypes::Union => todo!(),
+        crate::parser_types::AvailTypes::Vec =>
+            format!(
+                "deserialize_vec::<{}>",
+                get_generic_arg_str(field.field_type.generic_args[0].as_ref(), &gen_args).unwrap()
+            ),
+    };
+
+    // let arg = get_generic_arg_str(&field.field_type, &gen_args).unwrap();
+
+    let additional = match field.field_type.get_type() {
+        crate::parser_types::AvailTypes::Vec => { ".to_vec()" }
+        _ => { "" }
+    };
+
+    let line = format!(
+        "            {}: {}(&buffer, &mut pos){}, ",
+        camel_to_snake(&field.field_name),
+        s,
+        additional
+    );
+    return line;
+}
+
+pub fn generate_rust_deserialize_lines(parsed: &ParsedStruct) -> ReturnT {
+    let name = get_struct_def(parsed);
+
+    let ret_typ = format!("Result<({}, usize), String>", name);
+    let fn_def =
+        format!("    pub fn deserialize_from(buffer: &BufferT, pos: usize) -> {} {{", ret_typ);
+
+    let top = "        let mut pos: usize = pos;";
+    let create = format!("        let obj = {}{{", name);
+
+    let field_lines = parsed.fields
+        .iter()
+        .map(|f| generate_deserialize_line(parsed, f))
+        .collect::<Vec<String>>();
+
+    let obj_end = "        };";
+
+    let ret = "        return Ok((obj, pos));";
+    let fn_end = "    }";
+
+    let mut lines = Vec::new();
+    lines.push(fn_def.to_string());
+    lines.push(top.to_string());
+    lines.push(create);
+    lines.extend(field_lines);
+    lines.push(obj_end.to_string());
+    lines.push(ret.to_string());
+    lines.push(fn_end.to_string());
+    return Ok(lines);
+}
+
+pub fn generate_rust_struct_full(parsed: &ParsedStruct) -> ReturnT {
+    let mut to_output: Vec<String> = Vec::new();
+    let gen_def = generate_rust_struct(parsed);
+    let gen_ser = generate_rust_serialize_lines(parsed);
+    let gen_deser = generate_rust_deserialize_lines(parsed);
+
+    match (&gen_def, &gen_ser, &gen_deser) {
+        (Ok(def), Ok(ser), Ok(dser)) => {
+            to_output.extend(def.clone());
+            to_output.push("\r".to_string());
+            to_output.push(format!("impl {} {{", parsed.struct_name));
+            to_output.extend(ser.clone());
+
+            to_output.extend(dser.clone());
+
+            to_output.push("}".to_string());
+            return Ok(to_output);
+        }
+        _ => {
+            if gen_def.is_err() {
+                return Err(gen_def.unwrap_err());
+            }
+            if gen_ser.is_err() {
+                return Err(gen_ser.unwrap_err());
+            }
+            if gen_deser.is_err() {
+                return Err(gen_deser.unwrap_err());
+            }
+
+            return Err("Error generating struct".to_string());
+        }
+    }
 }

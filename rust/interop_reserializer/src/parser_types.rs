@@ -1,3 +1,10 @@
+pub enum AvailTypes {
+    Scalar,
+    Option,
+    Union,
+    Vec,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ParsedVariableType {
     pub name: String,
@@ -15,6 +22,15 @@ impl ParsedVariableType {
         ParsedVariableType {
             name: name.to_string(),
             generic_args: type_args,
+        }
+    }
+
+    pub fn get_type(&self) -> AvailTypes {
+        match self.name.as_str() {
+            "Optional" => AvailTypes::Option,
+            "Union" => AvailTypes::Union,
+            "Vector" => AvailTypes::Vec,
+            _ => AvailTypes::Scalar,
         }
     }
 }

@@ -6,7 +6,7 @@ use crate::{
 };
 
 impl BookUpdate {
-    pub fn serialize_into(&self, buffer: &mut BufferT, pos: usize) -> usize {
+    pub fn serialize_into2(&self, buffer: &mut BufferT, pos: usize) -> usize {
         let mut pos = serialize_scalar(&self.time, buffer, pos);
         pos = serialize_option(&self.timestamp_exch, buffer, pos);
         pos = serialize_scalar(&self.inst_id, buffer, pos);
@@ -16,7 +16,7 @@ impl BookUpdate {
         return pos;
     }
 
-    pub fn deserialize_from(buffer: &BufferT, pos: usize) -> Result<(BookUpdate, usize), String> {
+    pub fn deserialize_from2(buffer: &BufferT, pos: usize) -> Result<(BookUpdate, usize), String> {
         let mut pos = pos;
 
         // TODO:  Can I do this without the derefence????
@@ -27,9 +27,6 @@ impl BookUpdate {
             update_type: deserialize_scalar::<i128>(&buffer, &mut pos),
             bids: deserialize_vec::<i32>(&buffer, &mut pos).to_vec(),
             asks: deserialize_vec::<i64>(&buffer, &mut pos).to_vec(),
-
-            // bids: Vec::new(),
-            // asks: Vec::new(),
         };
 
         return Ok((bu, pos));
