@@ -8,6 +8,7 @@ pub mod generated_serializer_tests {
     use generated_mod::common_serialize::{ serialize_scalar, serialize_vec };
     use generated_mod::common_types::RawArray;
     use generated_mod::types_tests::BookUpdate;
+    use generated_mod::types_tests_serialization::BookUpdateBuffer;
 
     fn write_buffer_to_file(filepath: &str, buffer: &Vec<u8>) -> io::Result<()> {
         let mut file = File::create(filepath)?;
@@ -37,6 +38,9 @@ pub mod generated_serializer_tests {
         };
 
         let mut buffer: Vec<u8> = Vec::with_capacity(200);
+        unsafe {
+            let _ = buffer.align_to::<i8>();
+        }
         let new_pos = to_serialize.serialize_into(&mut buffer, 0);
         unsafe {
             buffer.set_len(new_pos);
@@ -85,6 +89,44 @@ pub mod generated_serializer_tests {
     }
 
     #[test]
+    pub fn test_book_update_from_buffer() {
+        let mut buf: Vec<u8> = Vec::with_capacity(200);
+        unsafe {
+            let _ = buf.align_to::<i8>();
+        }
+
+        let to_serialize = BookUpdate {
+            time: 32,
+            timestamp_exch: Some(999),
+            inst_id: 64,
+            update_type: 128,
+            bids: vec![1, 2, 3, 4, 5, 6],
+            asks: vec![9, 8, 7, 6, 5],
+        };
+
+        let pos = to_serialize.serialize_into(&mut buf, 0);
+
+        unsafe {
+            buf.set_len(pos);
+        }
+
+        let bu = BookUpdateBuffer::from_buffer(&buf, 0);
+
+        println!(
+            "{}:{:?}:{}:{}:{}:{}",
+            bu.time(),
+            bu.time_exch(),
+            bu.inst_id(),
+            bu.update_type(),
+            bu.bid_len(),
+            bu.ask_len()
+        );
+
+        assert_eq!(bu.bids(), to_serialize.bids);
+        assert_eq!(bu.asks(), to_serialize.asks);
+    }
+
+    #[test]
     pub fn test_alignments() {
         #[derive(Debug, PartialEq, Eq)]
         struct S {
@@ -111,6 +153,9 @@ pub mod generated_serializer_tests {
         pos = serialize_scalar(&s1.c, &mut buf, pos);
         pos = serialize_scalar(&s1.d, &mut buf, pos);
         pos = serialize_vec(&s1.v, &mut buf, pos);
+        unsafe {
+            buf.set_len(pos);
+        }
 
         let mut offset = 0;
         let s2 = S {

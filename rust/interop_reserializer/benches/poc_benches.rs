@@ -1,20 +1,21 @@
 use criterion::{ black_box, criterion_group, criterion_main, Criterion };
 
 mod helpers;
-use helpers::{ get_default_buffer };
-use generated_mod::poc_types::{ BookUpdatePoc, BookUpdatePocCreate, BookUpdatePocRead };
+use generated_mod::types_tests_serialization::BookUpdateBuffer;
+use helpers::{ get_book_update_test_obj, get_default_buffer };
 
 fn benchmark_direct_deserialize(c: &mut Criterion) {
     let mut buf: Vec<u8> = get_default_buffer();
-    let bu = BookUpdatePocCreate { bids: vec![1, 2, 3, 4], asks: vec![9, 8, 7, 6] };
-    let pos = bu.write_to_buffer(&mut buf, 0);
+    let bu = get_book_update_test_obj();
+    let pos = bu.serialize_into(&mut buf, 0);
     unsafe {
+        let _ = buf.align_to::<i8>();
         buf.set_len(pos);
     }
 
     c.bench_function("DeSer::PoC Direct", |b| {
         b.iter(|| {
-            let buc = black_box(BookUpdatePocRead::from_buffer(&buf, 0));
+            let buc = black_box(BookUpdateBuffer::from_buffer(&buf, 0));
 
             // The above doesn't really do anything.
             // For a valid test we need to actually retrieve some values.

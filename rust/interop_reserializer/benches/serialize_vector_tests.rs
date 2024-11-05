@@ -1,13 +1,8 @@
-use std::borrow::BorrowMut;
-
-use generated_mod::common_serialize::serialize_vec;
-
 #[cfg(test)]
 pub mod serialize_vector_tests {
     use generated_mod::{
         common_deserialize::deserialize_scalar,
         common_serialize::serialize_scalar,
-        poc_types::{ BookUpdatePoc, BookUpdatePocCreate, BookUpdatePocRead },
     };
 
     #[test]
@@ -49,26 +44,5 @@ pub mod serialize_vector_tests {
         };
 
         assert_eq!(s1, s2);
-    }
-
-    #[test]
-    pub fn test_fixed_size_vector() {
-        let bu = BookUpdatePocCreate {
-            bids: vec![1, 2, 3, 4],
-            asks: vec![9, 8, 7, 6],
-        };
-
-        let mut buf: Vec<u8> = Vec::with_capacity(100);
-        let _ = unsafe { buf.align_to::<u8>() };
-
-        let pos = bu.write_to_buffer(&mut buf, 0);
-        unsafe {
-            buf.set_len(pos);
-        }
-
-        let buc = BookUpdatePocRead::from_buffer(&buf, 0);
-
-        assert_eq!(bu.bids(), buc.bids());
-        assert_eq!(bu.asks(), buc.asks());
     }
 }
