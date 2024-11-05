@@ -1,6 +1,10 @@
 #[cfg(test)]
 pub mod parser_const_alias_tests {
-    use interop_reserializer::{lexer::Lexer, parser::parser_const_alias::parse_const_alias, parser_types::{AliasType, ParsedVariableType}};
+    use interop_reserializer::{
+        lexer::Lexer,
+        parser::parser_const_alias::parse_const_alias,
+        parser_types::{ AliasType, ParsedVariableType },
+    };
 
     fn compare(expect: AliasType, actual: AliasType) {
         assert!(expect == actual, "e: {:#?}, a: {:#?}", expect, actual);
@@ -13,18 +17,16 @@ pub mod parser_const_alias_tests {
         let parsed = parse_const_alias(&lexer.tokens, &mut 0);
 
         let expect = AliasType {
-            alias_type: 
-                ParsedVariableType::generic("TestAlias", 
-                    vec![ 
-                        Box::new(ParsedVariableType::scaler("T"))
-                    ]),
+            alias_type: ParsedVariableType::generic(
+                "TestAlias",
+                vec![Box::new(ParsedVariableType::scalar("T"))]
+            ),
 
-            target_type: 
-                ParsedVariableType::generic("TestImpl2", 
-                    vec![ 
-                        Box::new(ParsedVariableType::scaler("U"))
-                    ]),
-       };
+            target_type: ParsedVariableType::generic(
+                "TestImpl2",
+                vec![Box::new(ParsedVariableType::scalar("U"))]
+            ),
+        };
 
         compare(expect, parsed.unwrap());
     }

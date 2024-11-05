@@ -1,8 +1,15 @@
 #[cfg(test)]
 mod parser_fields_test {
-    use interop_reserializer::{lexer::Lexer, parser::parser_variable_type::parse_variable_type, parser_types::ParsedVariableType};
+    use interop_reserializer::{
+        lexer::Lexer,
+        parser::parser_variable_type::parse_variable_type,
+        parser_types::ParsedVariableType,
+    };
 
-    fn compare(expected: Result<ParsedVariableType, String>, actual: Result<ParsedVariableType, String>) {
+    fn compare(
+        expected: Result<ParsedVariableType, String>,
+        actual: Result<ParsedVariableType, String>
+    ) {
         assert!(expected == actual, "e: {:#?}, a: {:#?}", expected, actual);
     }
 
@@ -12,7 +19,7 @@ mod parser_fields_test {
         let tokens = Lexer::parse(&field_type);
         let parsed = parse_variable_type(&tokens.tokens, &mut 0);
 
-        let expected = ParsedVariableType::scaler("Int64");
+        let expected = ParsedVariableType::scalar("Int64");
         compare(Ok(expected), parsed);
     }
 
@@ -22,7 +29,10 @@ mod parser_fields_test {
         let tokens = Lexer::parse(&field_type);
         let parsed = parse_variable_type(&tokens.tokens, &mut 0);
 
-        let expected = ParsedVariableType::generic("Vector", vec![Box::new(ParsedVariableType::scaler("Int64"))]);
+        let expected = ParsedVariableType::generic(
+            "Vector",
+            vec![Box::new(ParsedVariableType::scalar("Int64"))]
+        );
         compare(Ok(expected), parsed);
     }
 
@@ -32,14 +42,13 @@ mod parser_fields_test {
         let tokens = Lexer::parse(&field_type);
         let parsed = parse_variable_type(&tokens.tokens, &mut 0);
 
-        let inner = 
-            ParsedVariableType::generic("InnerVector", 
-                vec![Box::new(ParsedVariableType::scaler("Int64"))]);
+        let inner = ParsedVariableType::generic(
+            "InnerVector",
+            vec![Box::new(ParsedVariableType::scalar("Int64"))]
+        );
 
-        let expected = 
-            ParsedVariableType::generic("Vector", 
-                vec![Box::new(inner)]);
-        
+        let expected = ParsedVariableType::generic("Vector", vec![Box::new(inner)]);
+
         compare(Ok(expected), parsed);
     }
 
@@ -50,10 +59,10 @@ mod parser_fields_test {
         let parsed = parse_variable_type(&tokens.tokens, &mut 0);
 
         let expected_args = vec![
-            Box::new(ParsedVariableType::scaler("Int64")),
-            Box::new(ParsedVariableType::scaler("Float64")),
-            Box::new(ParsedVariableType::scaler("TimeStamp")),
-            Box::new(ParsedVariableType::scaler("String")),
+            Box::new(ParsedVariableType::scalar("Int64")),
+            Box::new(ParsedVariableType::scalar("Float64")),
+            Box::new(ParsedVariableType::scalar("TimeStamp")),
+            Box::new(ParsedVariableType::scalar("String"))
         ];
 
         let expected = ParsedVariableType::generic("Union", expected_args);
@@ -67,18 +76,18 @@ mod parser_fields_test {
         let parsed = parse_variable_type(&tokens.tokens, &mut 0);
 
         let expected_args = vec![
-            Box::new(ParsedVariableType::scaler("Int64")),
-            Box::new(ParsedVariableType::generic(
-                "Vector", vec![
-                    Box::new(ParsedVariableType::scaler("Float64")),
-                ]
-            )),
-            Box::new(ParsedVariableType::scaler("TimeStamp")),
-            Box::new(ParsedVariableType::scaler("String")),
+            Box::new(ParsedVariableType::scalar("Int64")),
+            Box::new(
+                ParsedVariableType::generic(
+                    "Vector",
+                    vec![Box::new(ParsedVariableType::scalar("Float64"))]
+                )
+            ),
+            Box::new(ParsedVariableType::scalar("TimeStamp")),
+            Box::new(ParsedVariableType::scalar("String"))
         ];
 
         let expected = ParsedVariableType::generic("Union", expected_args);
         compare(Ok(expected), parsed);
     }
- 
 }

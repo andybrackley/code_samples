@@ -1,6 +1,10 @@
 #[cfg(test)]
 pub mod parser_abstract_type_tests {
-    use interop_reserializer::{lexer::Lexer, parser::parser_abstract_type::parse_abstract_type, parser_types::{AbstractType, ParsedVariableType}};
+    use interop_reserializer::{
+        lexer::Lexer,
+        parser::parser_abstract_type::parse_abstract_type,
+        parser_types::{ AbstractType, ParsedVariableType },
+    };
 
     fn compare(expect: AbstractType, actual: AbstractType) {
         assert!(expect == actual, "e: {:#?}, a: {:#?}", expect, actual);
@@ -15,13 +19,16 @@ pub mod parser_abstract_type_tests {
         let expect = AbstractType {
             struct_name: "Test".to_string(),
             generic_arguments: vec![
-                Box::new(ParsedVariableType::generic("Union",
-                vec![
-                    Box::new(ParsedVariableType::scaler("A")),
-                    Box::new(ParsedVariableType::scaler("B")),
-                ])),
-                
-            ]
+                Box::new(
+                    ParsedVariableType::generic(
+                        "Union",
+                        vec![
+                            Box::new(ParsedVariableType::scalar("A")),
+                            Box::new(ParsedVariableType::scalar("B"))
+                        ]
+                    )
+                )
+            ],
         };
 
         compare(expect, parsed.unwrap());
