@@ -1,9 +1,69 @@
 #[cfg(test)]
 pub mod serialize_vector_tests {
     use generated_mod::{
-        common_deserialize::deserialize_scalar,
-        common_serialize::serialize_scalar,
+        common_deserialize::{
+            deserialize_option,
+            deserialize_scalar,
+            deserialize_vec,
+            Deserializable,
+        },
+        common_serialize::{ serialize_option, serialize_scalar, serialize_vec, Serializable },
     };
+
+    #[test]
+    pub fn test_option() {
+        #[derive(Debug, Copy, Clone)]
+        struct S {
+            a: i64,
+            b: i32,
+        }
+        impl Serializable for S {
+            fn serialize(&self, buffer: &mut [u8], pos: usize) -> usize {
+                let mut pos = serialize_scalar(&self.a, buffer, pos);
+                pos = serialize_scalar(&self.b, buffer, pos);
+                pos
+            }
+        }
+
+        impl<'a> Deserializable<'a> for S {
+            fn deserialize(buffer: &'a [u8], pos: &mut usize) -> Self {
+                S {
+                    a: deserialize_scalar::<i64>(buffer, pos),
+                    b: deserialize_scalar::<i32>(buffer, pos),
+                }
+            }
+        }
+
+        let v = Some(S { a: 10, b: 20 });
+
+        let mut buf: Vec<u8> = Vec::with_capacity(100);
+        let mut pos = serialize_option(&v, &mut buf, 0);
+
+        unsafe {
+            buf.set_len(pos);
+        }
+
+        pos = 0;
+        let res = deserialize_option::<S>(&buf, &mut pos);
+        dbg!(res);
+    }
+
+    // #[test]
+    pub fn test_vec_of_vec() {
+        let mut v = vec![vec![1, 2, 3, 4], vec![5, 6, 7, 8]];
+
+        let mut buf: Vec<u8> = Vec::with_capacity(100);
+        let mut pos = serialize_vec(&v, &mut buf, 0);
+
+        unsafe {
+            v.set_len(pos);
+        }
+
+        pos = 0;
+        let res = deserialize_vec::<Vec<Vec<i32>>>(&buf, &mut pos);
+
+        dbg!(res);
+    }
 
     #[test]
     pub fn test_various_sizes() {

@@ -4,6 +4,22 @@ use bytemuck::{ checked::{ try_from_bytes, CheckedCastError }, AnyBitPattern };
 
 use crate::types::{ calc_padding, BufferT, Constants };
 
+pub trait Deserializable<'a> {
+    fn deserialize(buffer: &'a [u8], pos: &mut usize) -> Self;
+}
+
+impl<'a> Deserializable<'a> for i32 {
+    fn deserialize(buffer: &'a [u8], pos: &mut usize) -> Self {
+        deserialize_scalar(buffer, pos)
+    }
+}
+
+impl<'a> Deserializable<'a> for i64 {
+    fn deserialize(buffer: &'a [u8], pos: &mut usize) -> Self {
+        deserialize_scalar(buffer, pos)
+    }
+}
+
 pub fn deserialize_scalar<'a, T: Copy>(buffer: &'a [u8], pos: &mut usize) -> T {
     let size = size_of::<T>();
     debug_assert!(
@@ -21,7 +37,7 @@ pub fn deserialize_scalar<'a, T: Copy>(buffer: &'a [u8], pos: &mut usize) -> T {
     return *value;
 }
 
-pub fn deserialize_vec<'a, T: AnyBitPattern>(buffer: &'a [u8], offset: &mut usize) -> &'a [T] {
+pub fn deserialize_vec<'a, T>(buffer: &'a [u8], offset: &mut usize) -> &'a [T] {
     let vec_size = deserialize_scalar::<usize>(&buffer, offset.borrow_mut());
 
     debug_assert!(
@@ -47,8 +63,8 @@ pub fn deserialize_vec<'a, T: AnyBitPattern>(buffer: &'a [u8], offset: &mut usiz
     return x;
 }
 
-// TODO: I think I want to return a reference here
-pub fn deserialize_option<'a, T: AnyBitPattern + Copy>(
+// TODO: I think I want to return a reference here,
+pub fn deserialize_option<'a, T: Deserializable<'a>>(
     buffer: &'a [u8],
     offset: &mut usize
 ) -> Option<T> {
@@ -58,6 +74,6 @@ pub fn deserialize_option<'a, T: AnyBitPattern + Copy>(
         return None;
     }
 
-    let v = deserialize_scalar::<T>(buffer, offset);
+    let v = T::deserialize(buffer, offset);
     return Some(v);
 }
