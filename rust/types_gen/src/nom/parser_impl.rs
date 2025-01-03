@@ -4,7 +4,7 @@ use nom::{
     branch::alt,
     bytes::complete::tag,
     character::complete::{ alphanumeric1, multispace0, one_of },
-    combinator::{ map_res, opt, recognize },
+    combinator::{ map, map_res, opt, recognize },
     error::VerboseError,
     multi::{ many0, many1, many_till, separated_list0 },
     sequence::{ delimited, preceded, terminated },
@@ -19,6 +19,7 @@ use crate::common::parser_types::{
     ParsedField,
     ParsedStruct,
     ParsedVariableType,
+    ParsedType,
 };
 
 type ParseResult<'a, T> = IResult<&'a str, T, VerboseError<&'a str>>;
@@ -39,7 +40,7 @@ fn parsed_numeric<'a, T: FromStr>() -> impl Fn(&'a str) -> ParseResult<'a, T> {
     }
 }
 
-pub fn parse_alias<'a>(str: &'a str) -> ParseResult<AliasType> {
+fn parse_alias<'a>(str: &'a str) -> ParseResult<AliasType> {
     let (input, _) = keyword("const")(str)?;
     let (input, alias_type) = parse_var_type(input)?;
     let (input, _) = keyword("=")(input)?;
@@ -54,7 +55,7 @@ pub fn parse_alias<'a>(str: &'a str) -> ParseResult<AliasType> {
     ))
 }
 
-pub fn parse_abstract_type<'a>(str: &'a str) -> ParseResult<AbstractType> {
+fn parse_abstract_type<'a>(str: &'a str) -> ParseResult<AbstractType> {
     let (input, _) = keyword("abstract")(str)?;
     let (input, _) = keyword("type")(input)?;
     let (input, abs_type) = parse_var_type(input)?;
@@ -69,7 +70,7 @@ pub fn parse_abstract_type<'a>(str: &'a str) -> ParseResult<AbstractType> {
     ))
 }
 
-pub fn parse_enum<'a>(str: &'a str) -> ParseResult<'a, EnumType> {
+fn parse_enum<'a>(str: &'a str) -> ParseResult<'a, EnumType> {
     let parse_e_with_val = |input: &'a str| -> ParseResult<'a, EnumValue> {
         let (input, name) = identifier()(input)?;
         let (input, value) = opt(preceded(keyword("="), parsed_numeric::<i32>()))(input)?;
@@ -95,7 +96,7 @@ pub fn parse_enum<'a>(str: &'a str) -> ParseResult<'a, EnumType> {
     ))
 }
 
-pub fn parse_var_type(str: &str) -> ParseResult<ParsedVariableType> {
+fn parse_var_type(str: &str) -> ParseResult<ParsedVariableType> {
     let parse_generic_args = delimited(
         tag("{"),
         separated_list0(tag(","), parse_var_type),
@@ -113,7 +114,7 @@ pub fn parse_var_type(str: &str) -> ParseResult<ParsedVariableType> {
     Ok((input, vt))
 }
 
-pub fn parse_field(str: &str) -> ParseResult<ParsedField> {
+fn parse_field(str: &str) -> ParseResult<ParsedField> {
     let (input, name) = identifier()(str)?;
     let (input, _) = keyword("::")(input)?;
     let (input, var_type) = parse_var_type(input)?;
@@ -121,7 +122,7 @@ pub fn parse_field(str: &str) -> ParseResult<ParsedField> {
     Ok((input, ParsedField { field_name: name.to_string(), field_type: var_type }))
 }
 
-pub fn parse_struct<'a>(str: &'a str) -> ParseResult<'a, ParsedStruct> {
+fn parse_struct<'a>(str: &'a str) -> ParseResult<'a, ParsedStruct> {
     struct StructHeader {
         mutable: bool,
         name: String,
@@ -164,10 +165,45 @@ pub fn parse_struct<'a>(str: &'a str) -> ParseResult<'a, ParsedStruct> {
     ))
 }
 
+fn parse_comment(str: &str) -> ParseResult<&str> {
+    let (input, _) = tag("#")(str)?;
+    let (input, _) = many0(
+        one_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_ ")
+    )(input)?;
+    Ok((input, ""))
+}
+
+fn parse_include(str: &str) -> ParseResult<&str> {
+    let (input, _) = keyword("include")(str)?;
+    let (input, _) = delimited(
+        tag("(\""),
+        many1(one_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.")),
+        tag("\")")
+    )(input)?;
+    Ok((input, ""))
+}
+
+fn parse_types(str: &str) -> ParseResult<ParsedType> {
+    let (input, _) = opt(parse_comment)(str)?;
+    let (input, _) = opt(parse_include)(input)?;
+
+    alt((
+        map(parse_alias, ParsedType::Alias),
+        map(parse_abstract_type, ParsedType::Abstract),
+        map(parse_enum, ParsedType::Enum),
+        map(parse_struct, ParsedType::Struct),
+    ))(input)
+}
+
+pub fn parse_all_types(str: &str) -> ParseResult<Vec<ParsedType>> {
+    let res = many0(preceded(multispace0, parse_types))(str);
+    res
+}
+
 #[cfg(test)]
 pub mod test_parsers {
     pub mod test_parse_alias {
-        use crate::common::nom::parse::parse_alias;
+        use crate::nom::parser_impl::parse_alias;
 
         #[test]
         pub fn test_parse_alias() {
@@ -182,9 +218,9 @@ pub mod test_parsers {
     }
 
     pub mod test_parse_abstract_type {
-        use crate::common::{
-            nom::parse::parse_abstract_type,
-            parser_types::{ AbstractType, ParsedVariableType },
+        use crate::{
+            common::parser_types::{ AbstractType, ParsedVariableType },
+            nom::parser_impl::parse_abstract_type,
         };
 
         #[test]
@@ -211,10 +247,7 @@ pub mod test_parsers {
     }
 
     pub mod test_parse_enum {
-        use crate::{
-            common::parser_types::{ EnumType, EnumValue },
-            common::nom::parse::parse_enum,
-        };
+        use crate::{ common::parser_types::{ EnumType, EnumValue }, nom::parser_impl::parse_enum };
 
         #[test]
         fn test_enum_flat() {
@@ -276,7 +309,7 @@ end"#.trim();
     }
 
     pub mod test_parse_var_type {
-        use crate::common::{ nom::parse::parse_var_type, parser_types::ParsedVariableType };
+        use crate::{ common::parser_types::ParsedVariableType, nom::parser_impl::parse_var_type };
 
         #[test]
         pub fn test_parse_simple_var_type() {
@@ -334,12 +367,11 @@ end"#.trim();
     }
 
     pub mod test_parser_fields {
+        use crate::nom::parser_impl::parse_field;
+
         #[test]
         pub fn test_parse_field() {
-            use crate::common::{
-                nom::parse::parse_field,
-                parser_types::{ ParsedField, ParsedVariableType },
-            };
+            use crate::common::{ parser_types::{ ParsedField, ParsedVariableType } };
 
             assert_eq!(
                 parse_field("name :: Int64"),
@@ -389,7 +421,7 @@ end"#.trim();
     }
 
     pub mod test_struct_parser {
-        use crate::common::nom::parse::parse_struct;
+        use crate::nom::parser_impl::parse_struct;
 
         #[test]
         pub fn test_parse_struct() {

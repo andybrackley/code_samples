@@ -11,14 +11,3 @@ bincode = "1.3.3"
 serde = "1.0.214"
 nom = "7.1.3"
 
-[[bench]]
-name = "serialization_benches"
-harness = false
-
-[[bench]]
-name = "deserialization_benches"
-harness = false
-
-[[bench]]
-name = "poc_benches"
-harness = false
