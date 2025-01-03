@@ -3,11 +3,11 @@ use std::str::FromStr;
 use nom::{
     branch::alt,
     bytes::complete::tag,
-    character::complete::{ alphanumeric1, multispace0, one_of },
-    combinator::{ map, map_res, opt, recognize },
+    character::complete::{ alphanumeric1, multispace0, one_of, alpha1 },
+    combinator::{ all_consuming, map, map_res, opt, recognize },
     error::VerboseError,
     multi::{ many0, many1, many_till, separated_list0 },
-    sequence::{ delimited, preceded, terminated },
+    sequence::{ delimited, pair, preceded, terminated },
     IResult,
 };
 
@@ -29,7 +29,14 @@ fn keyword<'a>(word: &'a str) -> impl Fn(&'a str) -> ParseResult<'a, &'a str> {
 }
 
 fn identifier<'a>() -> impl Fn(&'a str) -> ParseResult<'a, &'a str> {
-    move |input: &'a str| { preceded(multispace0, alphanumeric1)(input) }
+    // move |input: &'a str| { preceded(multispace0, alphanumeric1)(input) }
+
+    move |input: &'a str| {
+        map(
+            recognize(pair(alt((alpha1, tag("_"))), many0(alt((alphanumeric1, tag("_")))))),
+            |s: &str| s
+        )(input)
+    }
 }
 
 fn parsed_numeric<'a, T: FromStr>() -> impl Fn(&'a str) -> ParseResult<'a, T> {
@@ -196,7 +203,7 @@ fn parse_types(str: &str) -> ParseResult<ParsedType> {
 }
 
 pub fn parse_all_types(str: &str) -> ParseResult<Vec<ParsedType>> {
-    let res = many0(preceded(multispace0, parse_types))(str);
+    let res = all_consuming(many0(preceded(multispace0, parse_types)))(str.trim());
     res
 }
 

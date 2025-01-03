@@ -51,7 +51,7 @@ struct StructCppDefTemplate<'a> {
 pub mod test_rust_outputs {
     use askama::Template;
 
-    use crate::common::askama::rust::output_struct::{ StructDefDetails, StructRustDefTemplate };
+    use crate::askama::rust::output_struct::{ StructDefDetails, StructRustDefTemplate };
 
     #[test]
     pub fn test_struct_definition() {
@@ -69,7 +69,7 @@ pub mod test_rust_outputs {
 #[cfg(test)]
 pub mod test_cpp_outputs {
     use askama::Template;
-    use crate::common::askama::rust::output_struct::{ StructDefDetails, StructCppDefTemplate };
+    use crate::askama::rust::output_struct::{ StructDefDetails, StructCppDefTemplate };
 
     #[test]
     pub fn test_struct_definition() {

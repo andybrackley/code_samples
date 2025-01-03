@@ -1,0 +1,8 @@
+{%- block struct_def -%}
+struct {{ struct_def.struct_name }}{% if !struct_def.generic_args.is_empty() %}&#123;{{ struct_def.generic_args }}&#125;>{% endif %}
+{%- for field in struct_def.fields %}
+    {{ field.field }}::{{ field.typ }}
+{%- endfor %}
+end
+{%- endblock -%}
+
