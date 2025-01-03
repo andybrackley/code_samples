@@ -1,9 +1,11 @@
+// https://rinja-rs.github.io/askama/template_syntax.html
+
 use std::fs::File;
 use std::io::Write;
 
 use crate::{
-    askama::common::StructDefDetails,
-    common::parser_types::ParsedType,
+    askama::common::{ Field, StructDefDetails },
+    common::parser_types::{ ParsedType, ParsedVariableType },
     nom::parser::Parser,
 };
 
@@ -16,12 +18,25 @@ struct StructJuliaDefTemplate<'a> {
 }
 
 pub struct GeneratorJulia {}
-
 impl GeneratorJulia {
+    fn format_var_type(typ: &ParsedVariableType) -> String {
+        let gen = typ.generic_args
+            .iter()
+            .map(|a| Self::format_var_type(a))
+            .collect::<Vec<String>>()
+            .join(", ");
+
+        if gen.is_empty() {
+            typ.name.to_string()
+        } else {
+            format!("{}{{{}}}", typ.name, gen)
+        }
+    }
+
     fn generate_type(parsed_type: &ParsedType) -> String {
         match parsed_type {
             ParsedType::Struct(struct_def) => {
-                let detail = StructDefDetails::from_parsed(struct_def);
+                let detail = StructDefDetails::from_parsed(struct_def, &Self::format_var_type);
                 let template = StructJuliaDefTemplate {
                     struct_def: &detail,
                 };
@@ -62,4 +77,8 @@ impl GeneratorJulia {
         println!("Completed writing file: {}", &output_file_path);
         Ok(())
     }
+}
+
+fn format_as(value: &Field, format: &str) -> String {
+    format!("{}::{}", value.field, value.typ)
 }
