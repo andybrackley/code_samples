@@ -18,10 +18,13 @@ impl ParsedVariableType {
         }
     }
 
-    pub fn generic(name: &str, type_args: Vec<Box<ParsedVariableType>>) -> ParsedVariableType {
+    pub fn generic(name: &str, type_args: Vec<ParsedVariableType>) -> ParsedVariableType {
         ParsedVariableType {
             name: name.to_string(),
-            generic_args: type_args,
+            generic_args: type_args
+                .into_iter()
+                .map(|x| Box::new(x))
+                .collect(),
         }
     }
 

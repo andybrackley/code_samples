@@ -1,0 +1,14 @@
+{%- block struct_def -%}
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+pub struct {{ struct_def.struct_name }}{% if !struct_def.generic_args.is_empty() %}<{{ struct_def.generic_args }}>{% endif %} {
+{%- for field in struct_def.fields %}
+    pub {{ field.field }}: {{ field.typ }},
+{%- endfor %}
+}
+{%- endblock -%}
+
+{% block struct_dbg_impl %}
+impl Debug for {{ struct_def.struct_name }} {
+
+}
+{% endblock %}

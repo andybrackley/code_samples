@@ -1,10 +1,10 @@
 use crate::common::parser_types::ParsedVariableType;
-use crate::lexer::lexer_types::{Token, TokenType};
+use crate::lexer::lexer_types::{ Token, TokenType };
 
 #[derive(Debug)]
 struct Scoped {
     name: String,
-    types: Vec<Box<ParsedVariableType>>,
+    types: Vec<ParsedVariableType>,
 }
 
 impl Scoped {
@@ -53,7 +53,7 @@ pub fn parse_variable_type(tokens: &Vec<Token>, token_pos: &mut usize) -> Return
                     let v = parse_tokens(tokens, token_pos, &mut scope, true, depth + 1);
                     match v {
                         Ok(v) => {
-                            scope.types.push(Box::new(v));
+                            scope.types.push(v);
                         }
                         Err(e) => {
                             return Err(e);
@@ -72,7 +72,7 @@ pub fn parse_variable_type(tokens: &Vec<Token>, token_pos: &mut usize) -> Return
                     }
 
                     let v = scope_to_var(&scope);
-                    outer.types.push(Box::new(v));
+                    outer.types.push(v);
                     scope.types.clear();
                     scope.name.clear();
                 }
