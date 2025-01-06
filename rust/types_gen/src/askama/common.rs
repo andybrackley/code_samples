@@ -1,39 +1,38 @@
 use crate::common::parser_types::{ ParsedStruct, ParsedVariableType };
 
+#[derive(Debug, Clone)]
 pub struct Field {
     pub field: String,
-    pub typ: String,
+    pub typ: ParsedVariableType,
+    pub prev: Option<Box<Field>>,
 }
 
+#[derive(Debug, Clone)]
 pub struct StructDefDetails {
     pub struct_name: String,
-    pub generic_args: String,
+    pub generic_args: Vec<Box<ParsedVariableType>>,
     pub fields: Vec<Field>,
 }
 impl StructDefDetails {
-    pub fn from_parsed(
-        def: &ParsedStruct,
-        typ_formatter: &dyn Fn(&ParsedVariableType) -> String
-    ) -> Self {
-        let args: Vec<String> = def.generic_arguments
-            .iter()
-            .map(|a| typ_formatter(a))
-            .collect();
+    pub fn from_parsed(def: &ParsedStruct) -> Self {
+        let mut prev_field: Option<Box<Field>> = None;
 
         Self {
             struct_name: def.struct_name.clone(),
-            generic_args: args.join(", "),
+            generic_args: def.generic_arguments.clone(),
             fields: def.fields
                 .iter()
-                .map(|f| Field {
-                    field: f.field_name.clone(),
-                    typ: typ_formatter(&f.field_type),
+                .map(|f| {
+                    let field = Field {
+                        field: f.field_name.clone(),
+                        typ: f.field_type.clone(),
+                        prev: prev_field.take(),
+                    };
+
+                    prev_field = Some(Box::new(field.clone()));
+                    field
                 })
                 .collect(),
         }
     }
-}
-
-pub trait VarTypeFormatter {
-    fn format_var_type(&self, typ: &ParsedVariableType) -> String;
 }

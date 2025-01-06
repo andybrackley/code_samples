@@ -1,8 +1,37 @@
 {%- block struct_def -%}
-struct {{ struct_def.struct_name }}{% if !struct_def.generic_args.is_empty() %}{{ "{" }}{{ struct_def.generic_args }}{{ "}" }}{% endif %}
+struct {{ struct_def.struct_name }}{{ Self::format_generics(struct_def.generic_args) }}
 {%- for field in struct_def.fields %}
-    {{ field.field }}::{{ field.typ }}
+    _{{ field.field }}::{{ Self::format_var_type(field.typ) }}
 {%- endfor %}
 end
+
+{%- for field in struct_def.fields %}
+function get_{{ field.field }}(self::{{ struct_def.struct_name }})
+    return self._{{ field.field }}
+end
+{%- endfor %}
+
 {%- endblock -%}
 
+{%- block struct_buffer_def -%}
+struct {{ struct_def.struct_name }}_Buffer{{ Self::format_generics(struct_def.generic_args) }}
+    buffer::Vector{UInt8}
+    start_pos::UInt64
+end
+
+# Offset Calculations
+const {{ struct_def.struct_name }}_OFFSET_COUNT = 0
+const {{ struct_def.struct_name }}_START_OFFSET = sizeof(Int) * {{ struct_def.struct_name }}_OFFSET_COUNT
+
+{%- for field in struct_def.fields %}
+const {{ struct_def.struct_name }}_{{ field.field }}_OFFSET = 0
+{%- endfor %}
+
+{%- for field in struct_def.fields %}
+
+function get_{{ field.field }}(self::{{ struct_def.struct_name }}_Buffer)
+    return self._{{ field.field }}
+end
+{%- endfor %}
+
+{%- endblock -%}

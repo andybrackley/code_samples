@@ -1,48 +1,101 @@
+// TODO:
+// - [ ] Find Julia Frameworks for serialization
+// - [ ] Add support for enums
+// - [ ] Serialize
+// - [ ] Deserialize
+// - [ ] Setters
+// - [ ] Buffered Struct Version
+// - [ ] Var sized fields ( Offsets )
+// - [ ] Clone method
+// - [ ] Inherit
+// - [ ] Aliases / Const
+
 // https://rinja-rs.github.io/askama/template_syntax.html
 
 use std::fs::File;
 use std::io::Write;
 
 use crate::{
-    askama::common::{ Field, StructDefDetails },
-    common::parser_types::{ ParsedType, ParsedVariableType },
+    askama::common::StructDefDetails,
+    common::parser_types::{ ParsedStruct, ParsedType, ParsedVariableType },
     nom::parser::Parser,
 };
 
 use askama::Template;
+
+mod julia_formatters {
+    use crate::common::parser_types::ParsedVariableType;
+
+    pub fn format_generics_impl(args: &Vec<Box<ParsedVariableType>>) -> String {
+        let gen_str = args
+            .iter()
+            .map(|a| format_var_type(a))
+            .collect::<Vec<String>>()
+            .join(", ");
+
+        if gen_str.is_empty() {
+            gen_str
+        } else {
+            format!("{{{}}}", gen_str)
+        }
+    }
+
+    pub fn format_var_type(typ: &ParsedVariableType) -> String {
+        format!("{}{}", typ.name, format_generics_impl(&typ.generic_args))
+    }
+}
 
 #[derive(Template)]
 #[template(path = "julia_template_struct.txt", block = "struct_def")]
 struct StructJuliaDefTemplate<'a> {
     pub struct_def: &'a StructDefDetails,
 }
+impl<'a> StructJuliaDefTemplate<'a> {
+    pub fn format_generics(args: &Vec<Box<ParsedVariableType>>) -> String {
+        julia_formatters::format_generics_impl(args)
+    }
+
+    pub fn format_var_type(typ: &ParsedVariableType) -> String {
+        julia_formatters::format_var_type(typ)
+    }
+}
+
+#[derive(Template)]
+#[template(path = "julia_template_struct.txt", block = "struct_buffer_def")]
+struct StructBufferJuliaDefTemplate<'a> {
+    pub struct_def: &'a StructDefDetails,
+}
+impl<'a> StructBufferJuliaDefTemplate<'a> {
+    pub fn format_generics(args: &Vec<Box<ParsedVariableType>>) -> String {
+        julia_formatters::format_generics_impl(args)
+    }
+
+    pub fn format_var_type(typ: &ParsedVariableType) -> String {
+        julia_formatters::format_var_type(typ)
+    }
+}
 
 pub struct GeneratorJulia {}
 impl GeneratorJulia {
-    fn format_var_type(typ: &ParsedVariableType) -> String {
-        let gen = typ.generic_args
-            .iter()
-            .map(|a| Self::format_var_type(a))
-            .collect::<Vec<String>>()
-            .join(", ");
+    fn generate_struct(parsed_struct: &ParsedStruct) -> String {
+        let detail = StructDefDetails::from_parsed(parsed_struct);
 
-        if gen.is_empty() {
-            typ.name.to_string()
-        } else {
-            format!("{}{{{}}}", typ.name, gen)
-        }
+        let struct_def = (StructJuliaDefTemplate { struct_def: &detail }).render().unwrap();
+        let struct_buffer_def = (StructBufferJuliaDefTemplate { struct_def: &detail })
+            .render()
+            .unwrap();
+
+        let mut lines: Vec<String> = Vec::new();
+        lines.push(struct_def);
+        lines.push("".to_string());
+        lines.push(struct_buffer_def);
+
+        lines.join("\r\n")
     }
 
     fn generate_type(parsed_type: &ParsedType) -> String {
         match parsed_type {
-            ParsedType::Struct(struct_def) => {
-                let detail = StructDefDetails::from_parsed(struct_def, &Self::format_var_type);
-                let template = StructJuliaDefTemplate {
-                    struct_def: &detail,
-                };
-
-                template.render().unwrap()
-            }
+            ParsedType::Struct(struct_def) => { Self::generate_struct(struct_def) }
             _ => "".to_string(),
         }
     }
@@ -77,8 +130,4 @@ impl GeneratorJulia {
         println!("Completed writing file: {}", &output_file_path);
         Ok(())
     }
-}
-
-fn format_as(value: &Field, format: &str) -> String {
-    format!("{}::{}", value.field, value.typ)
 }
