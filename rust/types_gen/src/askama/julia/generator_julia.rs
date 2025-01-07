@@ -1,5 +1,7 @@
+// DONE:
+// - [ x ] Find Julia Frameworks for serialization
+//
 // TODO:
-// - [ ] Find Julia Frameworks for serialization
 // - [ ] Add support for enums
 // - [ ] Serialize
 // - [ ] Deserialize

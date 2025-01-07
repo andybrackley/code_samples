@@ -1,8 +1,18 @@
 struct Timestamp
     _stamp::UInt64
-end
-function get_stamp(self::Timestamp)
-    return self._stamp
+
+    function Timestamp(
+        stamp::UInt64,
+    ) 
+        return new(
+            stamp,
+        )
+    end
+    
+    function get_stamp(self::Timestamp)
+        return self._stamp
+    end
+    
 end
 
 struct Timestamp_Buffer

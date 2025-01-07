@@ -1,0 +1,48 @@
+use std::{ collections::{ HashMap, HashSet }, rc::Rc };
+
+use crate::common::parser_types::ParsedType;
+
+use super::parser::Parser;
+
+pub struct ParserEnv {
+    pub all_types: Vec<Rc<ParsedType>>,
+    pub type_lookup: HashMap<String, Rc<ParsedType>>,
+    pub var_sized_types: HashSet<String>,
+}
+impl ParserEnv {
+    fn var_sized_types() -> HashSet<String> {
+        HashSet::from(["String".to_string(), "Vec".to_string()])
+    }
+
+    fn is_type_var_sized(lookup: &HashSet<String>, typ: &ParsedType) -> bool {
+        let type_names: Vec<String> = Vec::new();
+        let exists = type_names.iter().any(|typ| lookup.contains(typ));
+        exists
+    }
+
+    pub fn build_from(parsers: &Vec<&Parser>) -> Self {
+        let mut all_types = Vec::new();
+        let mut type_lookup = HashMap::new();
+        let mut var_sized_types = Self::var_sized_types();
+
+        for parser in parsers {
+            for parsed_type in parser.get_types() {
+                let rc = Rc::new(parsed_type.clone());
+
+                all_types.push(rc.clone());
+
+                let type_name = "";
+                if type_lookup.contains_key(type_name) {
+                    panic!("Duplicate type name: {}", type_name);
+                }
+
+                type_lookup.insert(type_name.to_string(), rc.clone());
+
+                if Self::is_type_var_sized(&var_sized_types, parsed_type) {
+                    var_sized_types.insert(type_name.to_string());
+                }
+            }
+        }
+        ParserEnv { all_types, type_lookup, var_sized_types }
+    }
+}

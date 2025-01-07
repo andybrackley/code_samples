@@ -1,8 +1,21 @@
-struct GraphMessageId
+mutable struct GraphMessageId
     _id::UInt64
-end
-function get_id(self::GraphMessageId)
-    return self._id
+
+    function GraphMessageId(
+        id::UInt64,
+    ) 
+        return new(
+            id,
+        )
+    end
+    
+    function get_id(self::GraphMessageId)
+        return self._id
+    end
+     
+    function set_id(self::GraphMessageId, value::UInt64)
+        return self._id = value
+    end
 end
 
 struct GraphMessageId_Buffer
@@ -26,24 +39,49 @@ struct GraphMessageHeader
     _ts_in::Optional{Timestamp}
     _conflate_count::UInt64
     _msg_type::Optional{String}
-end
-function get_id(self::GraphMessageHeader)
-    return self._id
-end
-function get_parent_ids(self::GraphMessageHeader)
-    return self._parent_ids
-end
-function get_ts_enqueued(self::GraphMessageHeader)
-    return self._ts_enqueued
-end
-function get_ts_in(self::GraphMessageHeader)
-    return self._ts_in
-end
-function get_conflate_count(self::GraphMessageHeader)
-    return self._conflate_count
-end
-function get_msg_type(self::GraphMessageHeader)
-    return self._msg_type
+
+    function GraphMessageHeader(
+        id::GraphMessageId,
+        parent_ids::Array{GraphMessageId},
+        ts_enqueued::Optional{Timestamp},
+        ts_in::Optional{Timestamp},
+        conflate_count::UInt64,
+        msg_type::Optional{String},
+    ) 
+        return new(
+            id,
+            parent_ids,
+            ts_enqueued,
+            ts_in,
+            conflate_count,
+            msg_type,
+        )
+    end
+    
+    function get_id(self::GraphMessageHeader)
+        return self._id
+    end
+    
+    function get_parent_ids(self::GraphMessageHeader)
+        return self._parent_ids
+    end
+    
+    function get_ts_enqueued(self::GraphMessageHeader)
+        return self._ts_enqueued
+    end
+    
+    function get_ts_in(self::GraphMessageHeader)
+        return self._ts_in
+    end
+    
+    function get_conflate_count(self::GraphMessageHeader)
+        return self._conflate_count
+    end
+    
+    function get_msg_type(self::GraphMessageHeader)
+        return self._msg_type
+    end
+    
 end
 
 struct GraphMessageHeader_Buffer
@@ -88,12 +126,25 @@ end
 struct GraphMessage{T}
     _header::GraphMessageHeader
     _data::T
-end
-function get_header(self::GraphMessage)
-    return self._header
-end
-function get_data(self::GraphMessage)
-    return self._data
+
+    function GraphMessage(
+        header::GraphMessageHeader,
+        data::T,
+    ) 
+        return new(
+            header,
+            data,
+        )
+    end
+    
+    function get_header(self::GraphMessage)
+        return self._header
+    end
+    
+    function get_data(self::GraphMessage)
+        return self._data
+    end
+    
 end
 
 struct GraphMessage_Buffer{T}

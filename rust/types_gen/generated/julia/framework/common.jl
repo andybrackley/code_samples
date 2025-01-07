@@ -7,7 +7,7 @@ const Scalar = Union{Char,Bool,
 
 const Bytes = AbstractVector{UInt8}
 
-function calc_padding(pos:UInt64)
+function calc_padding(pos::UInt64)
     r = pos % 8
     to_pad = r == 0 ? 0 : 8 - r
     return to_pad

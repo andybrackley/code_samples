@@ -1,6 +1,6 @@
 include("common.jl")
 
-struct GraphMessageId
+mutable struct GraphMessageId
     id::UInt64
 end
 

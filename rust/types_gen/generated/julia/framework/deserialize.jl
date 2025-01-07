@@ -1,7 +1,7 @@
 
 include("common.jl")
 
-function deserialize(bytes::Bytes, offset::Int32, ::Type{T}) where {T<:Scalar}
+function deserialize(bytes::Bytes, offset::Int64, ::Type{T}) where {T<:Scalar}
     start = offset + 1
 
     # Special case for Char as the sizeof(Char) == 4 but only 1 bytes
@@ -23,7 +23,7 @@ function deserialize(bytes::Bytes, offset::Int32, ::Type{T}) where {T<:Scalar}
     return value, newOffset
 end
 
-function deserialize(bytes::Bytes, offset::Int32, ::Type{T}) where {T<:AbstractString}
+function deserialize(bytes::Bytes, offset::Int64, ::Type{T}) where {T<:AbstractString}
     strlen, offset = deserialize(bytes, offset, Int32)
 
     ptr = pointer(bytes) + offset
@@ -33,13 +33,13 @@ function deserialize(bytes::Bytes, offset::Int32, ::Type{T}) where {T<:AbstractS
 end
 
 
-function deserialize(bytes::Bytes, offset::Int32, ::Type{T}) where {T<:Enum}
+function deserialize(bytes::Bytes, offset::Int64, ::Type{T}) where {T<:Enum}
     ptr = pointer(bytes) + offset
     value = unsafe_wrap(Array, ptr, sizeof(T))[1] |> T
     return value, (offset + sizeof(T))
 end
 
-function deserialize(bytes::Bytes, offset::Int32, ::Type{Optional{T}}) where {T<:Optional}
+function deserialize(bytes::Bytes, offset::Int64, ::Type{Optional{T}}) where {T<:Optional}
     # Read First Byte to determine type
     type, newOffset = deserialize(bytes, offset, Char)
     if (type === Char(0))
@@ -49,11 +49,11 @@ function deserialize(bytes::Bytes, offset::Int32, ::Type{Optional{T}}) where {T<
     # union_all = Base.unwrap_unionall(T)
     # tail = Base.tuple_type_head(union_all)
     # inner_T = Base.unwrap_unionall(T).parameters[2]
-    value, newOffset = deserialize(bytes, Int32(newOffset), T)
+    value, newOffset = deserialize(bytes, Int64(newOffset), T)
     return value, newOffset
 end
 
-function deserialize(bytes::Bytes, offset::Int32, ::Type{Vector{T}}) where {T}
+function deserialize(bytes::Bytes, offset::Int64, ::Type{Vector{T}}) where {T}
     veclen, newOffset::Int32 = deserialize(bytes, offset, Int64)
 
     if isunionwithnothing(T)
@@ -90,3 +90,10 @@ end
 # Tests
 
 u64 = UInt64(1234)
+buffer = reinterpret(UInt8, [u64])
+start_pos = 0
+
+println(buffer)
+
+read_u64 = deserialize(buffer, start_pos, UInt64)[1]
+println(read_u64)

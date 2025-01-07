@@ -1,15 +1,31 @@
 {%- block struct_def -%}
-struct {{ struct_def.struct_name }}{{ Self::format_generics(struct_def.generic_args) }}
+{% if struct_def.is_mutable %}mutable {% endif %}struct {{ struct_def.struct_name }}{{ Self::format_generics(struct_def.generic_args) }}
 {%- for field in struct_def.fields %}
     _{{ field.field }}::{{ Self::format_var_type(field.typ) }}
 {%- endfor %}
-end
 
-{%- for field in struct_def.fields %}
-function get_{{ field.field }}(self::{{ struct_def.struct_name }})
-    return self._{{ field.field }}
+    function {{ struct_def.struct_name }}(
+        {%- for field in struct_def.fields %}
+        {{ field.field }}::{{ Self::format_var_type(field.typ) }},
+        {%- endfor %}
+    ) 
+        return new(
+            {%- for field in struct_def.fields %}
+            {{ field.field }},
+            {%- endfor %}
+        )
+    end
+    {% for field in struct_def.fields %}
+    function get_{{ field.field }}(self::{{ struct_def.struct_name }})
+        return self._{{ field.field }}
+    end
+    {% if struct_def.is_mutable %} 
+    function set_{{ field.field }}(self::{{ struct_def.struct_name }}, value::{{ Self::format_var_type(field.typ) }})
+        return self._{{ field.field }} = value
+    end
+   {%- endif -%}
+   {%- endfor %}
 end
-{%- endfor %}
 
 {%- endblock -%}
 

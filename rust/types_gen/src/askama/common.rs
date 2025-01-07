@@ -10,6 +10,7 @@ pub struct Field {
 #[derive(Debug, Clone)]
 pub struct StructDefDetails {
     pub struct_name: String,
+    pub is_mutable: bool,
     pub generic_args: Vec<Box<ParsedVariableType>>,
     pub fields: Vec<Field>,
 }
@@ -19,6 +20,7 @@ impl StructDefDetails {
 
         Self {
             struct_name: def.struct_name.clone(),
+            is_mutable: def.is_mutable,
             generic_args: def.generic_arguments.clone(),
             fields: def.fields
                 .iter()
