@@ -27,7 +27,7 @@ use crate::common::parser_types::EnumType;
 use crate::{
     askama::common::StructDefDetails,
     common::parser_types::{ParsedStruct, ParsedType, ParsedVariableType},
-    nom::{parser::Parser, parser_env::ParserEnv},
+    nom::parser_env::ParserEnv,
 };
 
 use askama::Template;
@@ -105,8 +105,8 @@ impl GeneratorJulia {
         enum_def
     }
 
-    fn generate_struct(parsed_struct: &ParsedStruct) -> String {
-        let detail = StructDefDetails::from_parsed(parsed_struct);
+    fn generate_struct(parsed_struct: &ParsedStruct, env: &ParserEnv) -> String {
+        let detail = StructDefDetails::from_parsed(parsed_struct, &env.var_sized_types);
 
         let struct_def = (StructJuliaDefTemplate {
             struct_def: &detail,
@@ -127,9 +127,9 @@ impl GeneratorJulia {
         lines.join("\r\n")
     }
 
-    fn generate_type(parsed_type: &ParsedType) -> String {
+    fn generate_type(parsed_type: &ParsedType, env: &ParserEnv) -> String {
         match parsed_type {
-            ParsedType::Struct(struct_def) => Self::generate_struct(struct_def),
+            ParsedType::Struct(struct_def) => Self::generate_struct(struct_def, env),
             ParsedType::Enum(enum_def) => Self::generate_enum(enum_def),
 
             _ => "".to_string(),
@@ -144,7 +144,7 @@ impl GeneratorJulia {
             let types = &file.types;
             includes.push(format!("include(\"{}.jl\")", file_name));
 
-            Self::generate_file_impl(base_path, file_name, types).unwrap();
+            Self::generate_file_impl(base_path, file_name, parsed, types).unwrap();
         });
 
         let output_file_path = format!("{}julia/lib.jl", base_path);
@@ -164,20 +164,16 @@ impl GeneratorJulia {
         Ok(())
     }
 
-    fn generate_file(base_path: &str, file_name: &str, parsed: &Parser) -> Result<(), String> {
-        let types = parsed.get_types();
-        Self::generate_file_impl(base_path, file_name, types)
-    }
-
     pub fn generate_file_impl(
         base_path: &str,
         file_name: &str,
+        env: &ParserEnv,
         types: &Vec<Rc<ParsedType>>,
     ) -> Result<(), String> {
         let mut lines: Vec<String> = Vec::new();
 
         types.iter().for_each(|t| {
-            let r = Self::generate_type(t);
+            let r = Self::generate_type(t, env);
             lines.push(r);
             lines.push("".to_string());
         });
