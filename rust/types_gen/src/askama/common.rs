@@ -1,4 +1,31 @@
-use crate::common::parser_types::{ ParsedStruct, ParsedVariableType };
+use crate::common::parser_types::{EnumType, ParsedStruct, ParsedVariableType};
+
+#[derive(Debug, Clone)]
+pub struct EnumValueDetails {
+    pub value_name: String,
+    pub value: Option<i32>,
+}
+
+#[derive(Debug, Clone)]
+pub struct EnumDefDetails {
+    pub enum_name: String,
+    pub values: Vec<EnumValueDetails>,
+}
+impl EnumDefDetails {
+    pub fn from_parsed(def: &EnumType) -> Self {
+        Self {
+            enum_name: def.name.clone(),
+            values: def
+                .values
+                .iter()
+                .map(|v| EnumValueDetails {
+                    value_name: v.name.clone(),
+                    value: v.value,
+                })
+                .collect(),
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct Field {
@@ -22,7 +49,8 @@ impl StructDefDetails {
             struct_name: def.struct_name.clone(),
             is_mutable: def.is_mutable,
             generic_args: def.generic_arguments.clone(),
-            fields: def.fields
+            fields: def
+                .fields
                 .iter()
                 .map(|f| {
                     let field = Field {

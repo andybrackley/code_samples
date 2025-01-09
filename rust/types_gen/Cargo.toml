@@ -6,8 +6,5 @@ edition = "2021"
 [dependencies]
 askama = { path = "D:/third_party_repos/rust/askama/askama" }
 criterion = "0.5.1"
-bytemuck = "1.19.0"
-bincode = "1.3.3"
 serde = "1.0.214"
 nom = "7.1.3"
-

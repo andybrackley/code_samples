@@ -2,48 +2,54 @@ use std::str::FromStr;
 
 use nom::{
     branch::alt,
-    bytes::complete::tag,
-    character::complete::{ alphanumeric1, multispace0, one_of, alpha1 },
-    combinator::{ all_consuming, map, map_res, opt, recognize },
+    bytes::complete::{tag, take_while1},
+    character::complete::{multispace0, one_of},
+    combinator::{all_consuming, map, map_res, opt, recognize},
     error::VerboseError,
-    multi::{ many0, many1, many_till, separated_list0 },
-    sequence::{ delimited, pair, preceded, terminated },
+    multi::{many0, many1, many_till, separated_list0, separated_list1},
+    sequence::{delimited, preceded, terminated},
     IResult,
 };
 
 use crate::common::parser_types::{
-    AbstractType,
-    AliasType,
-    EnumType,
-    EnumValue,
-    ParsedField,
-    ParsedStruct,
+    AbstractType, AliasType, EnumType, EnumValue, ParsedField, ParsedStruct, ParsedType,
     ParsedVariableType,
-    ParsedType,
 };
 
 type ParseResult<'a, T> = IResult<&'a str, T, VerboseError<&'a str>>;
 
 fn keyword<'a>(word: &'a str) -> impl Fn(&'a str) -> ParseResult<'a, &'a str> {
-    move |input: &'a str| { delimited(multispace0, tag(word), multispace0)(input) }
+    move |input: &'a str| delimited(multispace0, tag(word), multispace0)(input)
 }
 
-fn identifier<'a>() -> impl Fn(&'a str) -> ParseResult<'a, &'a str> {
-    // move |input: &'a str| { preceded(multispace0, alphanumeric1)(input) }
+fn recognize_with_valid_chars<'a, F>(valid_char: F) -> impl Fn(&'a str) -> ParseResult<&'a str>
+where
+    F: Fn(char) -> bool + Copy,
+{
+    move |input: &'a str| recognize(take_while1(valid_char))(input)
+}
 
+fn textline<'a>() -> impl Fn(&'a str) -> ParseResult<&'a str> {
+    recognize_with_valid_chars(|c: char| {
+        c.is_alphanumeric() || c == '_' || c == '-' || c == ' ' || c == '\t'
+    })
+}
+
+fn identifier<'a>() -> impl Fn(&'a str) -> ParseResult<&'a str> {
     move |input: &'a str| {
-        map(
-            recognize(pair(alt((alpha1, tag("_"))), many0(alt((alphanumeric1, tag("_")))))),
-            |s: &str| s
+        preceded(
+            multispace0,
+            recognize_with_valid_chars(|c: char| c.is_alphanumeric() || c == '_' || c == '-'),
         )(input)
     }
 }
 
 fn parsed_numeric<'a, T: FromStr>() -> impl Fn(&'a str) -> ParseResult<'a, T> {
     move |input: &'a str| {
-        map_res(recognize(many1(terminated(opt(tag("-")), one_of("0123456789")))), |v: &'a str| {
-            v.parse::<T>()
-        })(input)
+        map_res(
+            recognize(many1(terminated(opt(tag("-")), one_of("0123456789")))),
+            |v: &'a str| v.parse::<T>(),
+        )(input)
     }
 }
 
@@ -81,10 +87,17 @@ fn parse_enum<'a>(str: &'a str) -> ParseResult<'a, EnumType> {
     let parse_e_with_val = |input: &'a str| -> ParseResult<'a, EnumValue> {
         let (input, name) = identifier()(input)?;
         let (input, value) = opt(preceded(keyword("="), parsed_numeric::<i32>()))(input)?;
-        Ok((input, EnumValue { name: name.to_string(), value }))
+
+        Ok((
+            input,
+            EnumValue {
+                name: name.to_string(),
+                value,
+            },
+        ))
     };
 
-    let parse_flat = many1(parse_e_with_val);
+    let parse_flat = separated_list1(tag(" "), parse_e_with_val);
     let parse_block = preceded(keyword("begin"), move |input| {
         let (input, (values, _)) = many_till(parse_e_with_val, keyword("end"))(input)?;
         Ok((input, values))
@@ -107,16 +120,13 @@ fn parse_var_type(str: &str) -> ParseResult<ParsedVariableType> {
     let parse_generic_args = delimited(
         tag("{"),
         separated_list0(tag(","), parse_var_type),
-        tag("}")
+        tag("}"),
     );
 
     let (input, id) = identifier()(str)?;
     let (input, generic_args) = opt(parse_generic_args)(input)?;
 
-    let vt = ParsedVariableType::generic(
-        id,
-        generic_args.unwrap_or_else(|| [].to_vec())
-    );
+    let vt = ParsedVariableType::generic(id, generic_args.unwrap_or_else(|| [].to_vec()));
 
     Ok((input, vt))
 }
@@ -126,7 +136,13 @@ fn parse_field(str: &str) -> ParseResult<ParsedField> {
     let (input, _) = keyword("::")(input)?;
     let (input, var_type) = parse_var_type(input)?;
 
-    Ok((input, ParsedField { field_name: name.to_string(), field_type: var_type }))
+    Ok((
+        input,
+        ParsedField {
+            field_name: name.to_string(),
+            field_type: var_type,
+        },
+    ))
 }
 
 fn parse_struct<'a>(str: &'a str) -> ParseResult<'a, ParsedStruct> {
@@ -174,18 +190,19 @@ fn parse_struct<'a>(str: &'a str) -> ParseResult<'a, ParsedStruct> {
 
 fn parse_comment(str: &str) -> ParseResult<&str> {
     let (input, _) = tag("#")(str)?;
-    let (input, _) = many0(
-        one_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_ ")
-    )(input)?;
-    Ok((input, ""))
+    let (input, comment) = preceded(multispace0, textline())(input)?;
+    let (input, _) = multispace0(input)?;
+    Ok((input, comment))
 }
 
 fn parse_include(str: &str) -> ParseResult<&str> {
     let (input, _) = keyword("include")(str)?;
     let (input, _) = delimited(
         tag("(\""),
-        many1(one_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.")),
-        tag("\")")
+        many1(one_of(
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_.",
+        )),
+        tag("\")"),
     )(input)?;
     Ok((input, ""))
 }
@@ -226,7 +243,7 @@ pub mod test_parsers {
 
     pub mod test_parse_abstract_type {
         use crate::{
-            common::parser_types::{ AbstractType, ParsedVariableType },
+            common::parser_types::{AbstractType, ParsedVariableType},
             nom::parser_impl::parse_abstract_type,
         };
 
@@ -235,18 +252,15 @@ pub mod test_parsers {
             let def = "abstract type Test{Union{A, B}} end";
             let (_, x) = parse_abstract_type(def).unwrap();
 
-            dbg!(&x);
-
             let expect = AbstractType {
                 struct_name: "Test".to_string(),
-                generic_arguments: vec![
-                    Box::new(
-                        ParsedVariableType::generic(
-                            "Union",
-                            vec![ParsedVariableType::scalar("A"), ParsedVariableType::scalar("B")]
-                        )
-                    )
-                ],
+                generic_arguments: vec![Box::new(ParsedVariableType::generic(
+                    "Union",
+                    vec![
+                        ParsedVariableType::scalar("A"),
+                        ParsedVariableType::scalar("B"),
+                    ],
+                ))],
             };
 
             assert_eq!(expect, x);
@@ -254,21 +268,81 @@ pub mod test_parsers {
     }
 
     pub mod test_parse_enum {
-        use crate::{ common::parser_types::{ EnumType, EnumValue }, nom::parser_impl::parse_enum };
+        use crate::{
+            common::parser_types::{EnumType, EnumValue, ParsedType},
+            nom::parser_impl::{parse_comment, parse_enum, parse_types},
+        };
+
+        #[test]
+        fn test_parse_comment() {
+            let e = r#"
+# Common definitions used by multiple messages
+# Second line comment
+
+"#
+            .trim();
+
+            let (input, line1) = parse_comment(e).unwrap();
+            let (_, line2) = parse_comment(input).unwrap();
+
+            assert_eq!(line1, "Common definitions used by multiple messages");
+            assert_eq!(line2, "Second line comment");
+        }
+
+        #[test]
+        fn test_parse_enum_with_follow_up_lines() {
+            let e = r#"
+# Test Commment
+@enum EdgeDirection In Out
+
+struct Timestamp
+    stamp::UInt64
+end"#
+                .trim();
+
+            let (_, x) = parse_types(e).unwrap();
+            let expect = EnumType {
+                name: "EdgeDirection".to_string(),
+                values: vec![
+                    EnumValue {
+                        name: "In".to_string(),
+                        value: None,
+                    },
+                    EnumValue {
+                        name: "Out".to_string(),
+                        value: None,
+                    },
+                ],
+            };
+
+            assert_eq!(x, ParsedType::Enum(expect));
+        }
 
         #[test]
         fn test_enum_flat() {
             let e = "@enum Fruit apple orange banana";
             let (_, x) = parse_enum(e).unwrap();
 
-            assert_eq!(x, EnumType {
-                name: "Fruit".to_string(),
-                values: vec![
-                    EnumValue { name: "apple".to_string(), value: None },
-                    EnumValue { name: "orange".to_string(), value: None },
-                    EnumValue { name: "banana".to_string(), value: None }
-                ],
-            });
+            assert_eq!(
+                x,
+                EnumType {
+                    name: "Fruit".to_string(),
+                    values: vec![
+                        EnumValue {
+                            name: "apple".to_string(),
+                            value: None
+                        },
+                        EnumValue {
+                            name: "orange".to_string(),
+                            value: None
+                        },
+                        EnumValue {
+                            name: "banana".to_string(),
+                            value: None
+                        }
+                    ],
+                }
+            );
         }
 
         #[test]
@@ -276,53 +350,98 @@ pub mod test_parsers {
             let e = "@enum Fruit apple=1 orange=2 banana=3 test=123 none=-1";
             let (_, x) = parse_enum(e).unwrap();
 
-            assert_eq!(x, EnumType {
-                name: "Fruit".to_string(),
-                values: vec![
-                    EnumValue { name: "apple".to_string(), value: Some(1) },
-                    EnumValue { name: "orange".to_string(), value: Some(2) },
-                    EnumValue { name: "banana".to_string(), value: Some(3) },
-                    EnumValue { name: "test".to_string(), value: Some(123) },
-                    EnumValue { name: "none".to_string(), value: Some(-1) }
-                ],
-            });
+            assert_eq!(
+                x,
+                EnumType {
+                    name: "Fruit".to_string(),
+                    values: vec![
+                        EnumValue {
+                            name: "apple".to_string(),
+                            value: Some(1)
+                        },
+                        EnumValue {
+                            name: "orange".to_string(),
+                            value: Some(2)
+                        },
+                        EnumValue {
+                            name: "banana".to_string(),
+                            value: Some(3)
+                        },
+                        EnumValue {
+                            name: "test".to_string(),
+                            value: Some(123)
+                        },
+                        EnumValue {
+                            name: "none".to_string(),
+                            value: Some(-1)
+                        }
+                    ],
+                }
+            );
         }
 
         #[test]
         fn test_enum_block() {
-            let e =
-                r#"
+            let e = r#"
 @enum Fruit begin
     apple=1
     orange =2
     banana= 3
     test = 123
     none=-1
-end"#.trim();
+end"#
+                .trim();
 
             let (_, x) = parse_enum(e).unwrap();
 
-            assert_eq!(x, EnumType {
-                name: "Fruit".to_string(),
-                values: vec![
-                    EnumValue { name: "apple".to_string(), value: Some(1) },
-                    EnumValue { name: "orange".to_string(), value: Some(2) },
-                    EnumValue { name: "banana".to_string(), value: Some(3) },
-                    EnumValue { name: "test".to_string(), value: Some(123) },
-                    EnumValue { name: "none".to_string(), value: Some(-1) }
-                ],
-            });
+            assert_eq!(
+                x,
+                EnumType {
+                    name: "Fruit".to_string(),
+                    values: vec![
+                        EnumValue {
+                            name: "apple".to_string(),
+                            value: Some(1)
+                        },
+                        EnumValue {
+                            name: "orange".to_string(),
+                            value: Some(2)
+                        },
+                        EnumValue {
+                            name: "banana".to_string(),
+                            value: Some(3)
+                        },
+                        EnumValue {
+                            name: "test".to_string(),
+                            value: Some(123)
+                        },
+                        EnumValue {
+                            name: "none".to_string(),
+                            value: Some(-1)
+                        }
+                    ],
+                }
+            );
         }
     }
 
     pub mod test_parse_var_type {
-        use crate::{ common::parser_types::ParsedVariableType, nom::parser_impl::parse_var_type };
+        use crate::{common::parser_types::ParsedVariableType, nom::parser_impl::parse_var_type};
 
         #[test]
         pub fn test_parse_simple_var_type() {
-            assert_eq!(parse_var_type("Int64"), Ok(("", ParsedVariableType::scalar("Int64"))));
-            assert_eq!(parse_var_type("Float64"), Ok(("", ParsedVariableType::scalar("Float64"))));
-            assert_eq!(parse_var_type("String"), Ok(("", ParsedVariableType::scalar("String"))));
+            assert_eq!(
+                parse_var_type("Int64"),
+                Ok(("", ParsedVariableType::scalar("Int64")))
+            );
+            assert_eq!(
+                parse_var_type("Float64"),
+                Ok(("", ParsedVariableType::scalar("Float64")))
+            );
+            assert_eq!(
+                parse_var_type("String"),
+                Ok(("", ParsedVariableType::scalar("String")))
+            );
         }
 
         #[test]
@@ -341,12 +460,10 @@ end"#.trim();
                     "",
                     ParsedVariableType::generic(
                         "Vector",
-                        vec![
-                            ParsedVariableType::generic(
-                                "Union",
-                                vec![ParsedVariableType::scalar("Int64")]
-                            )
-                        ]
+                        vec![ParsedVariableType::generic(
+                            "Union",
+                            vec![ParsedVariableType::scalar("Int64")]
+                        )]
                     ),
                 ))
             );
@@ -357,16 +474,14 @@ end"#.trim();
                     "",
                     ParsedVariableType::generic(
                         "Vector",
-                        vec![
-                            ParsedVariableType::generic(
-                                "Union",
-                                vec![
-                                    ParsedVariableType::scalar("Int64"),
-                                    ParsedVariableType::scalar("Float64"),
-                                    ParsedVariableType::scalar("String")
-                                ]
-                            )
-                        ]
+                        vec![ParsedVariableType::generic(
+                            "Union",
+                            vec![
+                                ParsedVariableType::scalar("Int64"),
+                                ParsedVariableType::scalar("Float64"),
+                                ParsedVariableType::scalar("String")
+                            ]
+                        )]
                     ),
                 ))
             );
@@ -378,7 +493,7 @@ end"#.trim();
 
         #[test]
         pub fn test_parse_field() {
-            use crate::common::{ parser_types::{ ParsedField, ParsedVariableType } };
+            use crate::common::parser_types::{ParsedField, ParsedVariableType};
 
             assert_eq!(
                 parse_field("name :: Int64"),
@@ -410,16 +525,14 @@ end"#.trim();
                         field_name: "name".to_string(),
                         field_type: ParsedVariableType::generic(
                             "Vector",
-                            vec![
-                                ParsedVariableType::generic(
-                                    "Union",
-                                    vec![
-                                        ParsedVariableType::scalar("Int64"),
-                                        ParsedVariableType::scalar("Float64"),
-                                        ParsedVariableType::scalar("String")
-                                    ]
-                                )
-                            ]
+                            vec![ParsedVariableType::generic(
+                                "Union",
+                                vec![
+                                    ParsedVariableType::scalar("Int64"),
+                                    ParsedVariableType::scalar("Float64"),
+                                    ParsedVariableType::scalar("String")
+                                ]
+                            )]
                         ),
                     },
                 ))
@@ -432,12 +545,12 @@ end"#.trim();
 
         #[test]
         pub fn test_parse_struct() {
-            let def =
-                r#"
+            let def = r#"
 struct MyStruct{T, U} <: BaseStruct{T, U} 
     field1::Int64
     field2::Vector{Union{Int64, Float64, String}}
-end"#.trim();
+end"#
+                .trim();
 
             let mut_def = format!("mutable {}", def);
 
@@ -454,7 +567,8 @@ end"#.trim();
             let inherit = x.inherits_from.as_ref().unwrap();
             assert_eq!(inherit.struct_name, "BaseStruct");
             assert_eq!(
-                inherit.generic_arguments
+                inherit
+                    .generic_arguments
                     .iter()
                     .map(|a| a.name.clone())
                     .collect::<Vec<String>>(),
@@ -466,8 +580,6 @@ end"#.trim();
             let (_, x) = parse_struct(&mut_def).unwrap();
             assert_eq!(x.is_mutable, true);
             assert_eq!(x.struct_name, "MyStruct");
-
-            dbg!(x);
         }
     }
 }

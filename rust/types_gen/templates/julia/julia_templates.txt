@@ -1,0 +1,9 @@
+{%- block enum_def -%}
+@enumx {{ enum_def.enum_name }} begin
+{%- for value in enum_def.values %}
+    {{ value.value_name }}{% if let Some(value) = value.value %}={{ value }} {% endif %}
+{%- endfor %}
+end
+
+{%- endblock -%}
+
