@@ -13,8 +13,7 @@ struct GraphMessageHeader
     msg_type::Optional{String}
 end
 
-struct GraphMessage{T}
+struct GraphMessageString
     header::GraphMessageHeader
-    data::T
+    data::String
 end
-

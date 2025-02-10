@@ -1,68 +1,224 @@
 {%- block struct_def -%}
-{% if struct_def.is_mutable %}mutable {% endif %}struct {{ struct_def.struct_name }}{{ Self::format_generics(struct_def.generic_args) }}
-{%- for field in struct_def.field_positions.original_order %}
+
+{%- let module_name = struct_def.struct_name.clone() + "Impl" %}
+{%- let buffer_reader_name = struct_def.struct_name.clone() + "_Reader" %}
+{%- let x_buffer_writer_name = struct_def.struct_name.clone() + "_Writer" %}
+{%- let buffer_writer_name = "BufferedObj.Writer{".to_string() + struct_def.struct_name.as_str() + "}" %}
+{%- let buf_alias = "BufferObjT{".to_string() + struct_def.struct_name.as_str() + "}" %}
+{%- let type_name = struct_def.struct_name.clone() + "T" %}
+{%- let gen_str = Self::format_generics(struct_def.generic_args) %}
+{%- let full_struct_name = struct_def.struct_name.clone() + gen_str.as_str() %}
+
+{%- if struct_def.is_mutable %}mutable {% endif %}struct {{ full_struct_name }}
+
+{%- for field in struct_def.field_order_orig() %}
     _{{ field.field_name }}::{{ Self::format_var_type(field.field_type) }}
 {%- endfor %}
-
-    {{ struct_def.struct_name }}(
-        {%- for field in struct_def.field_positions.original_order %}
+    {{ full_struct_name }}(
+        {%- for field in struct_def.field_order_orig() %}
         {{ field.field_name }}::{{ Self::format_var_type(field.field_type) }},
         {%- endfor %}
-    ) = new(
-            {%- for field in struct_def.field_positions.original_order %}
-            {{ field.field_name }},
-            {%- endfor %}
-        )
-end
-function serialize(self::{{ struct_def.struct_name }}, buf::Bytes, start_pos::Int64) 
-    offsets = []
-    pos = start_pos + sizeof(offsets)
-
-{%- for field in struct_def.field_positions.original_order %}
-    pos = serialize(buf, pos, self._{{ field.field_name }})
-{%- endfor %}
-    serialize(buffer, start_pos, offsets)
-    return pos
-end
-
-function deserialize(buf::Bytes, pos::Ref{Int}, ::Type{T}) where { T<:{{ struct_def.struct_name }} }
-    offsets = []
-    pos[] += sizeof(offsets)
-    {{ struct_def.struct_name }}(
-{%- for field in struct_def.field_positions.original_order %}
-        deserialize(buf, pos, {{  Self::format_var_type(field.field_type) }}), # Deserialize {{ field.field_name }} 
-{%- endfor %}
+    ) {% if !gen_str.is_empty() %} where {{ gen_str }} {% endif %}= new(
+        {%- for field in struct_def.field_order_orig() %}
+        {{ field.field_name }},
+        {%- endfor %}
     )
 end
 
-{%- for field in struct_def.field_positions.original_order %}
-{{ field.field_name }}(self::{{ struct_def.struct_name }}) = self._{{ field.field_name }}
-{%- if struct_def.is_mutable %} 
-{{ field.field_name }}!(self::{{ struct_def.struct_name }}, value::{{ Self::format_var_type(field.field_type) }}) = self._{{ field.field_name }} = value
-{%- endif -%}
+const {{ buffer_reader_name }}{{ gen_str }} = BufferedObj.Reader{ {{ struct_def.struct_name }} }
+# const {{ buffer_writer_name }}{{ gen_str }} = BufferedObj.Writer{ {{ struct_def.struct_name }} }
+const {{ type_name }} = Union{ {{ struct_def.struct_name }}, {{ buf_alias }} }
+
+# Fields for {{ struct_def.struct_name }}
+{%- for field in struct_def.field_order_orig() %}
+{{ field.field_name }}(x::{{ full_struct_name }}) = x._{{ field.field_name }}
+{%- if struct_def.is_mutable %}
+{{ field.field_name }}!(x::{{ full_struct_name }}, value::{{ Self::format_var_type(field.field_type) }}) = x._{{ field.field_name }} = value
+{% endif %}
 {%- endfor %}
 
-{%- endblock -%}
+# Fields for {{ buffer_reader_name }}
 
-{%- block struct_buffer_def -%}
-struct {{ struct_def.struct_name }}_Buffer{{ Self::format_generics(struct_def.generic_args) }}
-    buffer::Vector{UInt8}
-    start_pos::UInt64
+{%- for field in struct_def.field_order_orig() %}
+{{ field.field_name }}(x::{{ buf_alias }}) = {{ module_name }}.{{ field.field_name }}(x._buffer, x._start_pos, {{ self.format_reader_var_type(field.field_type) }})
+{%- endfor %}
+
+# Setters for {{ buffer_writer_name }}
+
+{%- for field in struct_def.field_positions.fixed_size_fields %}
+function {{ field.field_name }}!(x::{{ buffer_writer_name }}, val::{{ Self::format_var_type(field.field_type)}}) 
+    pos = BufferDirect.write!(x._buffer, x._start_pos + {{ module_name }}.{{ self.as_offset_field_name(field) }}, val, {{ Self::format_var_type(field.field_type)}})
+    x._write_pos[] = max(pos, x._write_pos[])
 end
+{%- endfor %}
+
+{%- for field in struct_def.field_positions.var_sized_fields %}
+function {{ field.field_name }}_writer(x::{{ buffer_writer_name }})
+    {%- if struct_def.field_positions.is_field_offset(field) %}
+    {{ module_name }}.set_actual_offset(x._buffer, x._start_pos, {{ module_name }}.{{ self.as_index_field_name(field) }}, x._write_pos[])
+    {%- else %}
+    x._write_pos[] = x._start_pos + {{ module_name }}.{{ self.as_offset_field_name(field) }}
+    {%- endif %}
+    return {{ self.format_writer_var_type(field.field_type) }}(x._buffer, x._write_pos)
+end
+{%- endfor %}
+
+{%- if struct_def.is_var_sized() %}
+function finish(x::{{ buffer_writer_name }})
+    # Store the size of the element 
+    BufferDirect.write!(x._buffer, x._start_pos, x._write_pos[], Int64)
+end
+{%- endif %} 
+
+# Fallback Equality operator when the specialized version don't match
+function Base.:(==)(lhs::{{ type_name }}, rhs::{{ type_name }})::Bool
+    is_equal = true
+{%- for field in struct_def.field_order_ser() %}
+    is_equal = is_equal && {{ field.field_name }}(lhs) == {{ field.field_name }}(rhs)
+{%- endfor %}
+    return is_equal
+end
+
+# Where the types are both buffer types we can simply do a memcmp
+function Base.:(==)(lhs::{{ buf_alias }}, rhs::{{ buf_alias }})::Bool
+    if lhs._start_pos == rhs._start_pos && lhs._buffer == rhs._buffer
+        return true
+    end
+
+    lhs_size = {{ module_name }}.get_elem_size(lhs._buffer, lhs._start_pos)
+    rhs_size = {{ module_name }}.get_elem_size(rhs._buffer, rhs._start_pos)
+    if lhs_size != rhs_size
+        return false
+    end
+
+# TODO: This should just be using Base.memcmp() but it wasn't being found when I tried to use it
+    return tg_memcmp(pointer(lhs._buffer._buffer) + lhs._start_pos, pointer(rhs._buffer._buffer) + rhs._start_pos, lhs_size - 1)
+end
+
+module {{ module_name }}
+
+using ..Framework
+
+{%- for type in self.dependent_types() %}
+import ..{{ type }}
+{%- endfor %}
+
+import ..{{struct_def.struct_name}}
+import ..{{buffer_reader_name}}
+# import ..{{buffer_writer_name}}
 
 # Offset Calculations
-const {{ struct_def.struct_name }}_OFFSET_COUNT = 0
-const {{ struct_def.struct_name }}_START_OFFSET = sizeof(Int) * {{ struct_def.struct_name }}_OFFSET_COUNT
+const OFFSET_COUNT = {{ struct_def.offset_count() }}
+const SLOT_COUNT = {{ struct_def.slot_count() }}
+const START_OFFSET = sizeof(Int64) * SLOT_COUNT
 
-{%- for field in struct_def.field_positions.original_order %}
-const {{ struct_def.struct_name }}_{{ field.field_name }}_OFFSET = 0
+{%- for field in struct_def.field_positions.non_offset_fields() %}
+const {{ self.as_offset_field_name(field) }}::Int64 = {{ self.calc_offset(field) }}
 {%- endfor %}
+const END_FIXED_OFFSET::Int64 = {{ self.get_end_offset() }} 
 
-{%- for field in struct_def.field_positions.original_order %}
-
-function get_{{ field.field_name }}(self::{{ struct_def.struct_name }}_Buffer)
-    return self._{{ field.field_name }}
+{%- for field in struct_def.field_positions.offset_fields() %}
+const {{ self.as_index_field_name(field) }} = {{ self.calc_index_pos(field) }}
+{%- endfor %}
+{% for field in struct_def.field_positions.non_offset_fields() %}
+function {{ field.field_name }}(buf::BufferDirect.Instance, start_pos::Int64, ::Type{T}) where {T}
+    return BufferDirect.read(buf, Ref(start_pos + {{ self.as_offset_field_name(field) }}), T)
+end
+{%- endfor %}
+{%- for field in struct_def.field_positions.offset_fields() %}
+function {{ field.field_name }}(buf::BufferDirect.Instance, start_pos::Int64, ::Type{T}) where {T}
+    index = {{ self.as_index_field_name(field) }}
+    pos = get_actual_offset(buf, start_pos, index)
+    return BufferDirect.read(buf, Ref(pos), T)
 end
 {%- endfor %}
 
-{%- endblock -%}
+{%- if struct_def.is_fixed_size() %}
+# This is basically a sizeof(T) but ignores any padding that may be added to a struct
+# It's only available for fixed_size_types
+@inline function Framework.serialized_size(::Type{T}) where {T<:{{ struct_def.struct_name }}}
+    END_FIXED_OFFSET
+end
+{%- endif %}
+
+# This gets the size of the struct when it was serialized to the buffer 
+# i.e. end_pos - start_pos
+# It works for both fixed and variable sized types however the implementations are different
+{%- if struct_def.is_fixed_size() %}
+@inline function get_elem_size(buf::BufferDirect.Instance, start_pos::Int)::Int
+    return serialized_size({{ full_struct_name }})
+end
+{%- else %}
+@inline function get_elem_size(buf::BufferDirect.Instance, start_pos)::Int
+    BufferDirect.read(buf, Ref(start_pos), Int64)
+end
+{%- endif %}
+{%- if struct_def.is_var_sized() %}
+# Used to get the actual offset of variable length fields
+# {% for field in struct_def.field_positions.offset_fields() %} {{ field.field_name }}, {% endfor %}
+@inline function get_actual_offset(buffer::BufferDirect.Instance, start_pos::Int64, index::Int64) 
+    @assert index > 1 "get_actual_offset() index should be greater than 1, actual: $index"
+    @assert index <= SLOT_COUNT "Index: $index exceeds offset count of $SLOT_COUNT"
+
+    size_pos = start_pos + (index * sizeof(Int))
+# @assert offset > END_FIXED_OFFSET "Offset $offset should be after the END_FIXED_OFFSET: $END_FIXED_OFFSET"
+    return BufferDirect.read(buffer, Ref(size_pos), Int)
+end
+
+@inline function set_actual_offset(buffer::BufferDirect.Instance, start_pos::Int64, index::Int64, pos) 
+    @assert index > 1 "set_actual_offset() index should be greater than 1, actual: $index"
+    @assert index <= SLOT_COUNT "Index: $index exceeds offset count of $SLOT_COUNT"
+
+    size_pos = start_pos + (index * sizeof(Int))
+# @assert offset > END_FIXED_OFFSET "Offset $offset should be after the END_FIXED_OFFSET: $END_FIXED_OFFSET"
+    return BufferDirect.write!(buffer, size_pos, pos, Int)
+end
+{% endif %}
+@inline function write_custom!(buf::BufferDirect.Instance, start_pos::Int64, x::{{ struct_def.struct_name }}, {{ struct_def.struct_name }}) 
+    pos = start_pos + START_OFFSET
+{%- for field in struct_def.field_positions.non_offset_fields() %}
+    pos = BufferDirect.write!(buf, pos, x._{{ field.field_name }}, {{ Self::format_var_type(field.field_type) }})
+{%- endfor %}
+{%- for field in struct_def.field_positions.offset_fields() %}
+    BufferDirect.write!(buf, start_pos + ({{ self.as_index_field_name(field) }} * sizeof(Int64)), pos, Int64 )
+    pos = BufferDirect.write!(buf, pos, x._{{ field.field_name }}, {{ Self::format_var_type(field.field_type) }})
+{%- endfor %}
+{%- if struct_def.is_var_sized() %}
+    # Store the serialized size of the element
+    BufferDirect.write!(buf, start_pos, pos, Int64)
+{%- endif %}
+    return pos
+end
+
+@inline function read_custom(buf::BufferDirect.Instance, pos::Ref{Int}, ::Type{T}) where { T<:{{ struct_def.struct_name }} }
+    start_pos = pos[]
+    pos[] += get_elem_size(buf, start_pos)
+
+    {{ full_struct_name }}(
+        {%- for field in struct_def.field_order_orig() %}
+        {{ field.field_name }}(buf, start_pos, {{ Self::format_var_type(field.field_type) }}),
+        {%- endfor %}
+    )
+end
+
+# For the buffered version we simply wrap the buffer and start_pos
+@inline function read_custom(buf::BufferDirect.Instance, pos::Ref{Int}, ::Type{T}) where { T<:{{ buf_alias}} }
+    inst = {{ buffer_reader_name }}(buf, pos[])
+    pos[] += get_elem_size(buf, pos[])
+    inst
+end
+
+function Framework.BufferDirect.buffer_to_value(x::{{ buf_alias}})
+    read_custom(x._buffer, Ref(x._start_pos), {{ struct_def.struct_name }})
+end
+
+end # End of module {{ module_name }}
+
+# Function Override Definitions
+Framework.BufferDirect.get_elem_size(buf::BufferDirect.Instance, x::{{ buf_alias }}) = {{ module_name }}.get_elem_size(x._buffer, x._start_pos)
+Framework.BufferDirect.write_custom!(buf::BufferDirect.Instance, pos::Int64, x::{{ full_struct_name }}, ::Type{ {{ full_struct_name }} }) = {{ module_name }}.write_custom!(buf, pos, x, {{ full_struct_name }})
+Framework.BufferDirect.read_custom(buf::BufferDirect.Instance, pos::Ref{Int64}, ::Type{ {{ full_struct_name }} }) = {{ module_name }}.read_custom(buf, pos, {{ full_struct_name }})
+Framework.BufferDirect.read_custom(buf::BufferDirect.Instance, pos::Ref{Int64}, ::Type{ T }) where { T<:{{ buf_alias }} } = {{ module_name }}.read_custom(buf, pos, {{ buf_alias }})
+
+{%- endblock %}
+

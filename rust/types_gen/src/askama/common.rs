@@ -1,8 +1,8 @@
 use std::{collections::HashSet, rc::Rc};
 
-use crate::{
-    common::parser_types::{EnumType, ParsedStruct, ParsedVariableType},
-    nom::parser_env::FieldPositions,
+use crate::common::{
+    field_positions::{self, FieldPositions},
+    parser_types::{EnumType, ParsedField, ParsedStruct, ParsedVariableType},
 };
 
 #[derive(Debug, Clone)]
@@ -33,13 +33,6 @@ impl EnumDefDetails {
 }
 
 #[derive(Debug, Clone)]
-pub struct Field {
-    pub field: String,
-    pub typ: ParsedVariableType,
-    pub prev: Option<Box<Field>>,
-}
-
-#[derive(Debug, Clone)]
 pub struct StructDefDetails {
     pub struct_name: String,
     pub is_mutable: bool,
@@ -54,33 +47,39 @@ impl StructDefDetails {
             var_sized_types,
         );
 
-        let mut prev_field: Option<Box<Field>> = None;
-
         Self {
             struct_name: def.struct_name.clone(),
             is_mutable: def.is_mutable,
             generic_args: def.generic_arguments.clone(),
-            field_positions,
+            field_positions: field_positions.clone(),
         }
+    }
 
-        // Self {
-        //     struct_name: def.struct_name.clone(),
-        //     is_mutable: def.is_mutable,
-        //     generic_args: def.generic_arguments.clone(),
-        //     fields: def
-        //         .fields
-        //         .iter()
-        //         .map(|f| {
-        //             let field = Field {
-        //                 field: f.field_name.clone(),
-        //                 typ: f.field_type.clone(),
-        //                 prev: prev_field.take(),
-        //             };
+    pub fn is_var_sized(&self) -> bool {
+        self.field_positions.is_var_sized()
+    }
 
-        //             prev_field = Some(Box::new(field.clone()));
-        //             field
-        //         })
-        //         .collect(),
-        // }
+    pub fn is_fixed_size(&self) -> bool {
+        !self.is_var_sized()
+    }
+
+    pub fn offset_count(&self) -> usize {
+        self.field_positions.offset_fields().len()
+    }
+
+    pub fn slot_count(&self) -> usize {
+        if self.is_fixed_size() {
+            0
+        } else {
+            self.offset_count() + 1
+        }
+    }
+
+    pub fn field_order_orig(&self) -> &Vec<Rc<ParsedField>> {
+        &self.field_positions.original_order
+    }
+
+    pub fn field_order_ser(&self) -> Vec<Rc<ParsedField>> {
+        self.field_positions.in_serialize_order()
     }
 }

@@ -3,52 +3,9 @@ use std::{
     rc::Rc,
 };
 
-use crate::common::parser_types::{ParsedField, ParsedType};
+use crate::common::parser_types::ParsedType;
 
 use super::parser::Parser;
-
-#[derive(Debug, Clone)]
-pub struct FieldPositions {
-    pub original_order: Vec<Rc<ParsedField>>,
-    pub non_offset_fields: Vec<Rc<ParsedField>>,
-    pub offsets: Vec<Rc<ParsedField>>,
-}
-impl FieldPositions {
-    pub fn create_from_list(
-        fields: &Vec<Rc<ParsedField>>,
-        var_sized_types: &HashSet<String>,
-    ) -> Self {
-        let mut non_offset_fields = Vec::new();
-        let mut offsets = Vec::new();
-        let mut original_order = Vec::new();
-
-        for field in fields {
-            let types = field.field_type.flatten();
-            let is_offset = types.iter().any(|t| var_sized_types.contains(t));
-
-            original_order.push(field.clone());
-
-            if is_offset {
-                offsets.push(field.clone());
-            } else {
-                non_offset_fields.push(field.clone());
-            }
-        }
-
-        FieldPositions {
-            original_order,
-            non_offset_fields,
-            offsets,
-        }
-    }
-
-    pub fn in_serialize_order(&self) -> Vec<&Rc<ParsedField>> {
-        let mut fields = Vec::new();
-        fields.extend(self.non_offset_fields.iter());
-        fields.extend(self.offsets.iter());
-        fields
-    }
-}
 
 pub struct FileDefinitions {
     pub filename: Option<String>,
@@ -66,6 +23,10 @@ impl ParserEnv {
             "String".to_string(),
             "Vector".to_string(),
             "Array".to_string(),
+            // TODO: Option and Union shouldn't really be var_sized.
+            //       They actually depend on the types they contain.
+            "Optional".to_string(),
+            "Union".to_string(),
         ])
     }
 

@@ -33,7 +33,7 @@ pub mod test_generate_julia {
     }
 
     #[test]
-    pub fn generate() {
+    pub fn generate_graph_messages() {
         generate_files(vec!["common", "graph_message"]);
     }
 }
