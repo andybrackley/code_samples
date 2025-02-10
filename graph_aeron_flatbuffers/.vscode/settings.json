@@ -1,5 +1,8 @@
 {
     "cmake.sourceDirectory": "D:/graph/cpp",
     "java.compile.nullAnalysis.mode": "automatic",
-    "java.configuration.updateBuildConfiguration": "interactive"
+    "java.configuration.updateBuildConfiguration": "interactive",
+    "files.associations": {
+        "xstring": "cpp"
+    }
 }

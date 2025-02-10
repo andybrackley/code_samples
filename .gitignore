@@ -20,7 +20,9 @@ Cargo.lock
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-cpp/.vs/
+**/.vs/
+**/obj/
+**/bin/
 
 cpp/test_serialization/build
 cpp/test_serialization/.vscode/
@@ -33,3 +35,4 @@ graph_aeron_flatbuffers/cpp/.vsconan/
 graph_aeron_flatbuffers/cpp/CMakeUserPresets.json
 
 serialized/
+
