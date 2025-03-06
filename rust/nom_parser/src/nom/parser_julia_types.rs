@@ -13,6 +13,7 @@ use nom::{
     FindSubstring,
     IResult,
     Input,
+    Offset,
     Parser,
 };
 
@@ -28,17 +29,26 @@ use crate::common::parser_types::{
 use crate::nom::parser_primitives::{ as_integer, identifier, keyword };
 
 /// Parses a Julia style variable type declaration such as `Vector{Int64}`
-fn var_type<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, ParsedVariableType, E> {
+fn var_type<'a, I, E: ParseError<I>>(input: I) -> IResult<I, ParsedVariableType, E>
+    where
+        I: Input + Offset + Clone + AsRef<str> + Compare<&'a str>,
+        E: ParseError<I> + FromExternalError<I, ParseIntError>,
+        <I as Input>::Item: AsChar
+{
     let (input, name) = identifier().parse(input)?;
     let (input, generic_args) = opt(
         delimited(tag("{"), separated_list1(keyword(","), var_type), tag("}"))
     ).parse(input)?;
 
-    Ok((input, ParsedVariableType::generic(name, generic_args.unwrap_or_default())))
+    Ok((input, ParsedVariableType::generic(name.as_ref(), generic_args.unwrap_or_default())))
 }
-
 /// Parses a Julia style alias declaration such as `const MyVector{T} = Vector{Int64}`
-pub(crate) fn alias<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, AliasType, E> {
+pub(crate) fn alias<'a, I, E: ParseError<I>>(input: I) -> IResult<I, AliasType, E>
+    where
+        I: Input + Offset + Clone + AsRef<str> + Compare<&'a str>,
+        E: ParseError<I> + FromExternalError<I, ParseIntError>,
+        <I as Input>::Item: AsChar
+{
     let (input, _) = keyword("const").parse(input)?;
     let (input, alias_type) = var_type(input)?;
     let (input, _) = keyword("=").parse(input)?;
@@ -61,16 +71,18 @@ pub(crate) fn alias<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a s
 ///     Green = 2
 ///     Blue = 3
 /// end
-pub(crate) fn enum_macro<'a, E: ParseError<&'a str>>(
-    input: &'a str
-) -> IResult<&'a str, EnumType, E>
-    where E: FromExternalError<&'a str, ParseIntError>
+pub(crate) fn enum_macro<'a, I, E: ParseError<I>>(input: I) -> IResult<I, EnumType, E>
+    where
+        I: Input + Offset + Clone + AsRef<str> + Compare<&'a str>,
+        E: ParseError<I> + FromExternalError<I, ParseIntError>,
+        <I as Input>::Item: AsChar,
+        E: FromExternalError<I, ParseIntError>
 {
-    let with_value = |input: &'a str| {
+    let with_value = |input: I| {
         let (input, id) = identifier().parse(input)?;
-        let (input, value) = opt(preceded(keyword("="), as_integer::<i32, E>())).parse(input)?;
+        let (input, value) = opt(preceded(keyword("="), as_integer::<I, i32, E>())).parse(input)?;
 
-        Ok((input, EnumValue { name: id.to_string(), value: value }))
+        Ok((input, EnumValue { name: id.as_ref().to_string(), value: value }))
     };
 
     let as_flat = preceded(not(keyword("begin")), separated_list1(tag(" "), with_value));
@@ -87,16 +99,19 @@ pub(crate) fn enum_macro<'a, E: ParseError<&'a str>>(
     Ok((
         input,
         EnumType {
-            name: name.to_string(),
+            name: name.as_ref().to_string(),
             values,
         },
     ))
 }
 
 /// Parses a Julia style abstract type declaration such as `abstract type MyType{T} end`
-pub(crate) fn abstract_type<'a, E: ParseError<&'a str>>(
-    input: &'a str
-) -> IResult<&'a str, AbstractType, E> {
+pub(crate) fn abstract_type<'a, I, E: ParseError<I>>(input: I) -> IResult<I, AbstractType, E>
+    where
+        I: Input + Offset + Clone + AsRef<str> + Compare<&'a str>,
+        E: ParseError<I> + FromExternalError<I, ParseIntError>,
+        <I as Input>::Item: AsChar
+{
     let (input, _) = keyword("abstract").parse(input)?;
     let (input, _) = keyword("type").parse(input)?;
     let (input, abs_type) = var_type(input)?;
@@ -112,7 +127,12 @@ pub(crate) fn abstract_type<'a, E: ParseError<&'a str>>(
 }
 
 /// Parses a Julia style field declaration such as `x::Int64` or `x::Vector{Int64}`
-fn field<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, ParsedField, E> {
+fn field<'a, I, E: ParseError<I>>(input: I) -> IResult<I, ParsedField, E>
+    where
+        I: Input + Offset + Clone + AsRef<str> + Compare<&'a str>,
+        E: ParseError<I> + FromExternalError<I, ParseIntError>,
+        <I as Input>::Item: AsChar
+{
     let (input, field) = identifier().parse(input)?;
     let (input, _) = keyword("::").parse(input)?;
     let (input, var_type) = var_type(input)?;
@@ -120,7 +140,7 @@ fn field<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, ParsedF
     Ok((
         input,
         ParsedField {
-            field_name: field.to_string(),
+            field_name: field.as_ref().to_string(),
             field_type: var_type,
         },
     ))
@@ -145,9 +165,12 @@ fn field<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, ParsedF
 ///     size::Int64
 /// end`
 /// It will also parse `mutable struct` declarations such as `mutable struct MutablePoint <: AbstractPoint
-pub(crate) fn struct_def<'a, E: ParseError<&'a str>>(
-    input: &'a str
-) -> IResult<&'a str, ParsedStruct, E> {
+pub(crate) fn struct_def<'a, I, E: ParseError<I>>(input: I) -> IResult<I, ParsedStruct, E>
+    where
+        I: Input + Offset + Clone + AsRef<str> + Compare<&'a str>,
+        E: ParseError<I> + FromExternalError<I, ParseIntError>,
+        <I as Input>::Item: AsChar
+{
     struct StructHeader {
         mutable: bool,
         name: String,
@@ -155,7 +178,7 @@ pub(crate) fn struct_def<'a, E: ParseError<&'a str>>(
         inherit: Option<AbstractType>,
     }
 
-    let struct_header = move |input: &'a str| -> IResult<&str, StructHeader, E> {
+    let struct_header = move |input: I| -> IResult<I, StructHeader, E> {
         let (input, mutable) = opt(keyword("mutable")).parse(input)?;
         let (input, struct_n) = preceded(keyword("struct"), var_type).parse(input)?;
         let (input, inherit) = opt(preceded(keyword("<:"), var_type)).parse(input)?;
@@ -289,7 +312,7 @@ pub mod test_parser_julia_types {
         ];
 
         for (input, expect) in inputs {
-            let result = var_type::<Error<&str>>(input);
+            let result = var_type::<&str, Error<&str>>(input);
             assert!(result.is_ok(), "{}", result.unwrap_err());
             let (remaining, matched) = result.unwrap();
 
@@ -358,7 +381,7 @@ pub mod test_parser_julia_types {
         ];
 
         for (input, expected) in test_cases {
-            let result = alias::<Error<&str>>(input);
+            let result = alias::<&str, Error<&str>>(input);
             assert!(result.is_ok(), "Failed to parse: {}", input);
             let (remaining, matched) = result.unwrap();
             assert_eq!(remaining, "", "Input: {}", input);
@@ -376,7 +399,7 @@ pub mod test_parser_julia_types {
         ];
 
         for input in invalid_cases {
-            let result = alias::<Error<&str>>(input);
+            let result = alias::<&str, Error<&str>>(input);
             assert!(result.is_err(), "Should fail to parse: {}", input);
         }
     }
@@ -474,7 +497,7 @@ pub mod test_parser_julia_types {
         ];
 
         for (input, expected) in test_cases {
-            let result = enum_macro::<Error<&str>>(input);
+            let result = enum_macro::<&str, Error<&str>>(input);
             assert!(result.is_ok(), "Failed to parse: {}", input);
             let (remaining, matched) = result.unwrap();
             assert_eq!(remaining.trim(), "", "Input: {}", input);
@@ -497,7 +520,7 @@ pub mod test_parser_julia_types {
         //    We need the all_consuming to get the failures for the 1.5 case
         //    Otherwise the parser will succeed and we'll be left with the .5 remaining
         for input in invalid_cases {
-            let result = all_consuming(enum_macro::<Error<&str>>).parse(input);
+            let result = all_consuming(enum_macro::<&str, Error<&str>>).parse(input);
             assert!(result.is_err(), "Should fail to parse: {}", input);
         }
     }
@@ -532,7 +555,7 @@ pub mod test_parser_julia_types {
         ];
 
         for (input, expected) in test_cases {
-            let result = abstract_type::<Error<&str>>(input);
+            let result = abstract_type::<&str, Error<&str>>(input);
             assert!(result.is_ok(), "Failed to parse: {}, result: {}", input, result.unwrap_err());
             let (remaining, matched) = result.unwrap();
             assert_eq!(remaining, "", "Input: {}", input);
@@ -550,7 +573,7 @@ pub mod test_parser_julia_types {
         ];
 
         for input in invalid_cases {
-            let result = abstract_type::<Error<&str>>(input);
+            let result = abstract_type::<&str, Error<&str>>(input);
             assert!(result.is_err(), "Should fail to parse: {}", input);
         }
     }
@@ -591,7 +614,7 @@ pub mod test_parser_julia_types {
         ];
 
         for (input, expected) in test_cases {
-            let result = field::<Error<&str>>(input);
+            let result = field::<&str, Error<&str>>(input);
             assert!(result.is_ok(), "Failed to parse: {}", input);
             let (remaining, matched) = result.unwrap();
             assert_eq!(remaining, "", "Input: {}", input);
@@ -609,7 +632,7 @@ pub mod test_parser_julia_types {
         ];
 
         for input in invalid_cases {
-            let result = field::<Error<&str>>(input);
+            let result = field::<&str, Error<&str>>(input);
             assert!(result.is_err(), "Should fail to parse: {}", input);
         }
     }
@@ -770,7 +793,7 @@ pub mod test_parser_julia_types {
         ];
 
         for (input, expected) in test_cases {
-            let result = struct_def::<Error<&str>>(input);
+            let result = struct_def::<&str, Error<&str>>(input);
             assert!(result.is_ok(), "Failed to parse: {}", input);
             let (remaining, matched) = result.unwrap();
             assert_eq!(remaining.trim(), "", "Input: {}", input);
@@ -796,7 +819,7 @@ pub mod test_parser_julia_types {
         ];
 
         for input in invalid_cases {
-            let result = struct_def::<Error<&str>>(input);
+            let result = struct_def::<&str, Error<&str>>(input);
             assert!(result.is_err(), "Should fail to parse: {}", input);
         }
     }

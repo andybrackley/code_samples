@@ -1,10 +1,12 @@
 use std::rc::Rc;
 
 use nom::error::Error;
-
+use nom_locate::LocatedSpan;
 use crate::common::parser_types::ParsedType;
 
 use super::parser_impl::parse_all;
+
+type Span<'a> = LocatedSpan<&'a str>;
 
 fn read_file(full_path: &str) -> Result<String, std::io::Error> {
     use std::{ fs::File, io::prelude::* };
@@ -23,7 +25,9 @@ pub struct Parser {
 
 impl Parser {
     pub fn from_lines(lines: String) -> Result<Parser, String> {
-        match parse_all::<Error<&str>>(&lines) {
+        let span = Span::new(&lines);
+
+        match parse_all::<Span, Error<Span>>(span) {
             Ok((_, types)) =>
                 Ok(Parser {
                     file_name: None,
@@ -32,7 +36,33 @@ impl Parser {
                         .map(|t| Rc::new(t.clone()))
                         .collect(),
                 }),
-            Err(err) => Err(format!("Error parsing types: {:?}", err)),
+            Err(err) => {
+                let err = match err {
+                    nom::Err::Error(e) | nom::Err::Failure(e) => e,
+                    nom::Err::Incomplete(_) => {
+                        return Err("Incomplete input".to_string());
+                    }
+                };
+
+                println!("{:#?}", err);
+
+                let location = err.input;
+                Err(
+                    format!(
+                        "Parse error at line {}, column {}: {}, {}",
+                        location.location_line(),
+                        location.get_column(),
+                        err.input,
+                        match err.code {
+                            nom::error::ErrorKind::Tag => "Expected specific text",
+                            nom::error::ErrorKind::Alt =>
+                                "None of the expected alternatives matched",
+                            nom::error::ErrorKind::Eof => "Unexpected end of input",
+                            _ => "Invalid syntax",
+                        }
+                    )
+                )
+            }
         }
     }
 
@@ -112,5 +142,17 @@ end
         let parser = Parser::from_lines(book_def.to_string()).unwrap();
         let types = parser.get_types();
         assert_eq!(types.len(), 8);
+    }
+
+    #[test]
+    fn test_error_definition() {
+        let book_def = r#"@enum BookUpdateType Update Snapshot::xxx"#;
+
+        let parser = Parser::from_lines(book_def.to_string());
+        assert!(parser.is_err());
+        assert_eq!(
+            "Parse error at line 1, column 37: ::xxx, Unexpected end of input",
+            parser.map(|_| "").unwrap_err()
+        );
     }
 }

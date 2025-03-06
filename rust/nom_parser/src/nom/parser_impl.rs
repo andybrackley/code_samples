@@ -7,7 +7,12 @@ use nom::{
     error::{ FromExternalError, ParseError },
     multi::many0,
     sequence::preceded,
+    AsChar,
+    Compare,
+    FindSubstring,
     IResult,
+    Input,
+    Offset,
     Parser,
 };
 
@@ -16,8 +21,12 @@ use crate::{
     common::parser_types::{ ParsedItem, ParsedType },
 };
 
-fn julia_types<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, ParsedType, E>
-    where E: FromExternalError<&'a str, ParseIntError>
+fn julia_types<'a, I, E: ParseError<I>>(input: I) -> IResult<I, ParsedType, E>
+    where
+        I: Input + Offset + Clone + AsRef<str> + Compare<&'a str>,
+        E: ParseError<I> + FromExternalError<I, ParseIntError>,
+        <I as Input>::Item: AsChar,
+        E: FromExternalError<I, ParseIntError>
 {
     alt((
         map(alias, ParsedType::Alias),
@@ -27,28 +36,32 @@ fn julia_types<'a, E: ParseError<&'a str>>(input: &'a str) -> IResult<&'a str, P
     )).parse(input)
 }
 
-fn julia_types_with_comments<'a, E: ParseError<&'a str>>(
-    input: &'a str
-) -> IResult<&'a str, ParsedItem, E>
-    where E: FromExternalError<&'a str, ParseIntError>
+fn julia_types_with_comments<'a, I, E: ParseError<I>>(input: I) -> IResult<I, ParsedItem, E>
+    where
+        I: Input + Offset + Clone + AsRef<str> + Compare<&'a str> + FindSubstring<&'a str>,
+        E: ParseError<I> + FromExternalError<I, ParseIntError>,
+        <I as Input>::Item: AsChar,
+        E: FromExternalError<I, ParseIntError>
 {
     let (input, _) = opt(comment()).parse(input)?;
     let (input, _) = opt(include()).parse(input)?;
 
     alt((
-        map(comment(), |cmt: &str| ParsedItem::Comment(cmt.to_string())),
+        map(comment(), |cmt: I| ParsedItem::Comment(cmt.as_ref().to_string())),
         map(julia_types, ParsedItem::Type),
     )).parse(input)
 }
 
-pub(crate) fn parse_all<'a, E: ParseError<&'a str>>(
-    input: &'a str
-) -> IResult<&'a str, Vec<ParsedType>, E>
-    where E: FromExternalError<&'a str, ParseIntError>
+pub(crate) fn parse_all<'a, I, E: ParseError<I>>(input: I) -> IResult<I, Vec<ParsedType>, E>
+    where
+        I: Input + Offset + Clone + AsRef<str> + Compare<&'a str> + FindSubstring<&'a str>,
+        E: ParseError<I> + FromExternalError<I, ParseIntError>,
+        <I as Input>::Item: AsChar,
+        E: FromExternalError<I, ParseIntError>
 {
     let (input, items) = all_consuming(
         many0(preceded(multispace0, julia_types_with_comments))
-    ).parse(input.trim())?;
+    ).parse(input)?;
 
     let v: Vec<ParsedType> = items
         .into_iter()

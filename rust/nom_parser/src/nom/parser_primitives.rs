@@ -78,14 +78,13 @@ pub fn integer<'a, I, E: ParseError<I>>() -> impl Parser<I, Output = I, Error = 
     )
 }
 
-pub fn as_integer<'a, T: FromStr, E: ParseError<&'a str>>() -> impl Parser<
-        &'a str,
-        Output = T,
-        Error = E
-    >
-    where E: FromExternalError<&'a str, <T as FromStr>::Err>
+pub fn as_integer<'a, I, T: FromStr, E: ParseError<I>>() -> impl Parser<I, Output = T, Error = E>
+    where
+        I: Compare<&'a str> + Input + Clone + Offset + AsRef<str>,
+        E: FromExternalError<I, <T as FromStr>::Err>,
+        <I as Input>::Item: AsChar
 {
-    map_res(integer(), |v: &str| v.parse::<T>())
+    map_res(integer(), |v: I| v.as_ref().parse::<T>())
 }
 
 #[cfg(test)]
