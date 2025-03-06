@@ -52,3 +52,37 @@ pub struct EnumType {
     pub name: String,
     pub values: Vec<EnumValue>,
 }
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AbstractType {
+    pub struct_name: String,
+    pub generic_arguments: Vec<Box<ParsedVariableType>>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParsedField {
+    pub field_name: String,
+    pub field_type: ParsedVariableType,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ParsedStruct {
+    pub is_mutable: bool,
+    pub struct_name: String,
+    pub fields: Vec<ParsedField>,
+    pub inherits_from: Option<AbstractType>,
+    pub generic_arguments: Vec<Box<ParsedVariableType>>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum ParsedType {
+    Enum(EnumType),
+    Alias(AliasType),
+    Abstract(AbstractType),
+    Struct(ParsedStruct),
+}
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub enum ParsedItem {
+    Comment(String),
+    Type(ParsedType),
+}

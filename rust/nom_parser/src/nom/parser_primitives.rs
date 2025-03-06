@@ -1,4 +1,3 @@
-use nom_supreme::error::ErrorTree;
 use std::str::FromStr;
 
 use nom::{
@@ -34,7 +33,7 @@ pub fn recognize_with_valid_chars<I: Clone + Offset + Input, E: ParseError<I>, F
 
 /// Recognizes a valid identifier.
 /// A valid identifier starts with an alphabetic character or underscore,
-/// and is followed by any number of alphanumeric characters, underscores, or hyphens.
+/// and is followed by 0 or more alphanumeric characters, underscores, or hyphens.
 pub fn identifier<I, E: ParseError<I>>() -> impl Parser<I, Output = I, Error = E>
     where I: Input + Clone + Offset, <I as Input>::Item: AsChar
 {
@@ -47,10 +46,12 @@ pub fn identifier<I, E: ParseError<I>>() -> impl Parser<I, Output = I, Error = E
                     let c = c.as_char();
                     c.is_alphabetic() || c == '_'
                 }), // Rest can include numbers and hyphens
-                take_while1(|c: I::Item| {
-                    let c = c.as_char();
-                    c.is_alphanumeric() || c == '_' || c == '-'
-                })
+                opt(
+                    take_while1(|c: I::Item| {
+                        let c = c.as_char();
+                        c.is_alphanumeric() || c == '_' || c == '-'
+                    })
+                )
             )
         )
     )

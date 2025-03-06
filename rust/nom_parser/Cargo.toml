@@ -5,4 +5,3 @@ edition = "2024"
 
 [dependencies]
 nom = "8.0.0"
-nom-supreme = "0.8.0"

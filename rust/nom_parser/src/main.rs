@@ -1,6 +1,6 @@
-mod types;
-mod parser_primitives;
-mod parser_julia_types;
+mod nom;
+mod common;
+
 fn main() {
     println!("Hello, world!");
 }
