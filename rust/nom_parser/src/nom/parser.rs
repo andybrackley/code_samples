@@ -53,3 +53,64 @@ impl Parser {
         &self.all_types
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_book_definition() {
+        let book_def =
+            r#"@enum BookUpdateType Update Snapshot
+# Republish is only applicable to books with limited depth where a delete occured and level shifts back into the depth
+# See Delete Messages section at https://support.kraken.com/hc/en-us/articles/360027821131-How-to-maintain-a-valid-order-book
+@enum LevelUpdateType New Change Delete Republish
+
+struct Level
+    price::Price
+    size::Size
+    recent_size::Float64
+    last_update::Timestamp
+end
+
+const Levels = Vector{Level}
+
+# TODO: Books....
+
+mutable struct NewOrder
+    timestamp::Timestamp
+    timestamp_exch::Optional{Timestamp}
+    id::InstrumentId
+    price::Price
+    size::Optional{Size}
+    side::BidOrAsk
+end
+
+struct LevelUpdate
+    type::LevelUpdateType
+    level::Level
+end
+
+struct BookUpdate
+    timestamp::Timestamp
+    timestamp_exch::Optional{Timestamp}
+    id::InstrumentId
+    bids::Vector{LevelUpdate}
+    asks::Vector{LevelUpdate}
+    upd_type::BookUpdateType
+end
+
+struct FullBookUpdate
+    timestamp::Timestamp
+    timestamp_exch::Optional{Timestamp}
+    id::InstrumentId
+    bids::Levels
+    asks::Levels
+end
+        "#;
+
+        let parser = Parser::from_lines(book_def.to_string()).unwrap();
+        let types = parser.get_types();
+        // assert_eq!(types.len(), 10);
+    }
+}

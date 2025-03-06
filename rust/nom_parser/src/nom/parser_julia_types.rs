@@ -73,7 +73,7 @@ pub(crate) fn enum_macro<'a, E: ParseError<&'a str>>(
         Ok((input, EnumValue { name: id.to_string(), value: value }))
     };
 
-    let as_flat = preceded(not(keyword("begin")), many1(with_value));
+    let as_flat = preceded(not(keyword("begin")), separated_list1(tag(" "), with_value));
 
     let as_block = preceded(keyword("begin"), move |input| {
         let (input, (values, _)) = many_till(with_value, keyword("end")).parse(input)?;
