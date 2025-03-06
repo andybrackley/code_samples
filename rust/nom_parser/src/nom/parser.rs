@@ -111,6 +111,6 @@ end
 
         let parser = Parser::from_lines(book_def.to_string()).unwrap();
         let types = parser.get_types();
-        // assert_eq!(types.len(), 10);
+        assert_eq!(types.len(), 8);
     }
 }

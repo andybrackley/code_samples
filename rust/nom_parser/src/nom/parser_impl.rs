@@ -57,8 +57,3 @@ pub(crate) fn parse_all<'a, E: ParseError<&'a str>>(
 
     Ok((input, v))
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-}

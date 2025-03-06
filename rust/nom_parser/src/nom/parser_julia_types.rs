@@ -6,7 +6,7 @@ use nom::{
     character::complete::multispace0,
     combinator::{ not, opt },
     error::{ FromExternalError, ParseError },
-    multi::{ many1, many_till, separated_list1 },
+    multi::{ many_till, separated_list1 },
     sequence::{ delimited, preceded, terminated },
     AsChar,
     Compare,
