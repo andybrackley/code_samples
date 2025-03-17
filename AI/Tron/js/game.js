@@ -39,7 +39,7 @@ export class Game {
         this.controls.enableDamping = true;
 
         // Create and add player
-        this.player = new Player();
+        this.player = new Player(this.scene);
         this.scene.add(this.player.getModel());
 
         // Add lights
@@ -49,7 +49,7 @@ export class Game {
         this.scene.add(new THREE.AmbientLight(0x404040));
 
         // Add a grid for reference
-        const gridHelper = new THREE.GridHelper(20, 20);
+        const gridHelper = new THREE.GridHelper(200, 200);
         this.scene.add(gridHelper);
 
         // Setup input handlers

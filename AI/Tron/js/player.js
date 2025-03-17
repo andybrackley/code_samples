@@ -1,7 +1,8 @@
 import * as THREE from 'three';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
 
 export class Player {
-    constructor() {
+    constructor(scene) {
         // Physics properties
         this.velocity = new THREE.Vector3();
         this.direction = new THREE.Vector3(0, 0, -1);
@@ -18,7 +19,147 @@ export class Player {
         this.trailFadeDuration = 5000; // 5 seconds in milliseconds
 
         // Create the 3D model
-        this.model = this.createTronBike();
+        // this.model = this.createTronBike();
+
+        // Create empty container for the model
+        this.model = new THREE.Group();
+
+        // Rotate the model 180 degrees so it faces away from the camera initially
+        this.model.rotation.y = Math.PI;
+        
+        // Add debug helpers to see the model's position and orientation
+        const axesHelper = new THREE.AxesHelper(5);
+        this.model.add(axesHelper);
+        
+        // Add the model to the scene immediately (it will be empty until loaded)
+        if (scene) {
+            scene.add(this.model);
+            console.log("Added model container to scene");
+            
+            // Add a grid helper to the scene for reference
+            const gridHelper = new THREE.GridHelper(20, 20);
+            scene.add(gridHelper);
+        } else {
+            console.warn("No scene provided to Player constructor");
+        }
+        
+        // Load the FBX model
+        this.loadFbxModel();
+    }
+
+    // Load the FBX model
+    loadFbxModel() {
+        const loader = new FBXLoader();
+        
+        // Path to your FBX file
+        const fbxPath = 'assets/models/tron_bike.fbx';
+        
+        console.log("Starting to load FBX from:", fbxPath);
+        
+        loader.load(
+            fbxPath,
+            (fbx) => {
+                // Success callback
+                console.log('FBX model loaded successfully', fbx);
+                
+                // Get original dimensions for debugging
+                const originalBox = new THREE.Box3().setFromObject(fbx);
+                const originalSize = originalBox.getSize(new THREE.Vector3());
+                console.log('Original model dimensions:', originalSize);
+                
+                // Reset position completely before any transformations
+                fbx.position.set(0, 0, 0);
+                
+                // Scale the model
+                fbx.scale.set(2, 2, 2);
+                
+                // Adjust rotation to place the bike properly on the ground
+                // First rotate to align with the ground plane
+                // fbx.rotation.x = -Math.PI / 2;
+                
+                // Then rotate to make it level (not standing on back wheel)
+                fbx.rotation.z = 0; // Reset any z rotation
+                fbx.rotation.y = 0; // Reset any z rotation
+                
+                // Force recalculation of bounding box after transformations
+                fbx.updateMatrixWorld(true);
+                const transformedBox = new THREE.Box3().setFromObject(fbx);
+                const transformedCenter = transformedBox.getCenter(new THREE.Vector3());
+                
+                // Offset to center the model at origin
+                fbx.position.x = -transformedCenter.x;
+                fbx.position.y = -transformedCenter.y;
+                fbx.position.z = -transformedCenter.z;
+                
+                // Apply materials with glow effect
+                let meshCount = 0;
+                fbx.traverse((child) => {
+                    if (child.isMesh) {
+                        meshCount++;
+                        console.log('Found mesh in FBX:', child.name);
+                        
+                        // Create a brighter glowing material for the bike
+                        child.material = new THREE.MeshPhongMaterial({
+                            color: 0x1a2a44, // Dark base color
+                            emissive: 0x00ffff, // Cyan glow
+                            emissiveIntensity: 1.2, // Increased intensity
+                            specular: 0x00ffff,
+                            shininess: 50,
+                            transparent: false,
+                            opacity: 1.0
+                        });
+                        
+                        // Make sure it's visible
+                        child.visible = true;
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                    }
+                });
+                
+                console.log(`Found ${meshCount} meshes in the FBX model`);
+                
+                // Add the loaded model to our container
+                this.model.add(fbx);
+                
+                // Position the model slightly above the ground to ensure wheels touch the ground
+                this.model.position.y = 0.4; // Lowered to ensure wheels touch ground
+                
+                // Force the model to be at the origin in x and z
+                this.model.position.x = 0;
+                this.model.position.z = 0;
+                
+                // Add a point light for extra glow
+                const glowLight = new THREE.PointLight(0x00ffff, 2, 10);
+                glowLight.position.set(0, 1.0, 0);
+                this.model.add(glowLight);
+                    
+                // Log final state
+                console.log('Model added to scene with position:', this.model.position);
+                console.log('Model world position:', 
+                    new THREE.Vector3().setFromMatrixPosition(this.model.matrixWorld));
+                
+                // Get final dimensions for debugging
+                const finalBox = new THREE.Box3().setFromObject(this.model);
+                const finalSize = finalBox.getSize(new THREE.Vector3());
+                console.log('Final model dimensions:', finalSize);
+            },
+            (xhr) => {
+                // Progress callback
+                console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+            },
+            (error) => {
+                // Error callback
+                console.error('Error loading FBX model:', error);
+                
+                // Fallback to geometry-based model if FBX fails to load
+                console.log('Falling back to geometry-based model');
+                const fallbackModel = this.createGeometryBike();
+                this.model.add(fallbackModel);
+                
+                // Create light trail for the fallback model
+                this.createLightTrail();
+            }
+        );
     }
 
     createTronBike() {
